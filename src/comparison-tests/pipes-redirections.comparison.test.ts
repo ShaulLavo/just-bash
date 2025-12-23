@@ -44,7 +44,10 @@ describe("Pipes - Real Bash Comparison", () => {
       const env = await setupFiles(testDir, {
         "test.txt": "hello\nworld\nhello\n",
       });
-      await compareOutputs(env, testDir, "grep hello test.txt | wc -l");
+      // normalizeWhitespace needed because BSD/GNU wc have different column widths
+      await compareOutputs(env, testDir, "grep hello test.txt | wc -l", {
+        normalizeWhitespace: true,
+      });
     });
   });
 
@@ -60,10 +63,12 @@ describe("Pipes - Real Bash Comparison", () => {
       const env = await setupFiles(testDir, {
         "test.txt": "hello world\nfoo bar\nhello again\nbaz qux\n",
       });
+      // normalizeWhitespace needed because BSD/GNU wc have different column widths
       await compareOutputs(
         env,
         testDir,
         "cat test.txt | grep hello | sort | wc -l",
+        { normalizeWhitespace: true },
       );
     });
 
@@ -385,7 +390,10 @@ describe("Input Redirection (<) - Real Bash Comparison", () => {
       const env = await setupFiles(testDir, {
         "input.txt": "line1\nline2\nline3\n",
       });
-      await compareOutputs(env, testDir, "wc -l < input.txt");
+      // normalizeWhitespace needed because BSD/GNU wc have different column widths
+      await compareOutputs(env, testDir, "wc -l < input.txt", {
+        normalizeWhitespace: true,
+      });
     });
   });
 

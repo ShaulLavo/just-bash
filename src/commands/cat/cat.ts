@@ -48,7 +48,7 @@ export const catCommand: Command = {
     if (files.length === 0) {
       let output = ctx.stdin;
       if (showLineNumbers && output) {
-        output = addLineNumbers(output);
+        output = addLineNumbers(output, 1).content;
       }
       return { stdout: output, stderr: "", exitCode: 0 };
     }
@@ -56,6 +56,7 @@ export const catCommand: Command = {
     let stdout = "";
     let stderr = "";
     let exitCode = 0;
+    let lineNumber = 1;
 
     for (const file of files) {
       try {
@@ -68,8 +69,10 @@ export const catCommand: Command = {
         }
 
         if (showLineNumbers) {
-          // Real bash restarts line numbers for each file
-          content = addLineNumbers(content);
+          // Real bash continues line numbers across files
+          const result = addLineNumbers(content, lineNumber);
+          content = result.content;
+          lineNumber = result.nextLineNumber;
         }
 
         stdout += content;
@@ -83,16 +86,22 @@ export const catCommand: Command = {
   },
 };
 
-function addLineNumbers(content: string): string {
+function addLineNumbers(
+  content: string,
+  startLine: number,
+): { content: string; nextLineNumber: number } {
   const lines = content.split("\n");
   // Don't number the trailing empty line if file ends with newline
   const hasTrailingNewline = content.endsWith("\n");
   const linesToNumber = hasTrailingNewline ? lines.slice(0, -1) : lines;
 
   const numbered = linesToNumber.map((line, i) => {
-    const num = String(i + 1).padStart(6, " ");
+    const num = String(startLine + i).padStart(6, " ");
     return `${num}\t${line}`;
   });
 
-  return numbered.join("\n") + (hasTrailingNewline ? "\n" : "");
+  return {
+    content: numbered.join("\n") + (hasTrailingNewline ? "\n" : ""),
+    nextLineNumber: startLine + linesToNumber.length,
+  };
 }

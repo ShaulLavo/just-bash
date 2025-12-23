@@ -47,19 +47,23 @@ describe("uniq command - Real Bash Comparison", () => {
     });
   });
 
+  // Note: normalizeWhitespace is needed for -c tests because BSD and GNU uniq
+  // have different column width formatting, but the actual values are the same
+  const uniqCountOptions = { normalizeWhitespace: true };
+
   describe("-c flag (count)", () => {
     it("should count occurrences", async () => {
       const env = await setupFiles(testDir, {
         "test.txt": "apple\napple\nbanana\nbanana\nbanana\ncherry\n",
       });
-      await compareOutputs(env, testDir, "uniq -c test.txt");
+      await compareOutputs(env, testDir, "uniq -c test.txt", uniqCountOptions);
     });
 
     it("should count single occurrences", async () => {
       const env = await setupFiles(testDir, {
         "test.txt": "a\nb\nc\n",
       });
-      await compareOutputs(env, testDir, "uniq -c test.txt");
+      await compareOutputs(env, testDir, "uniq -c test.txt", uniqCountOptions);
     });
   });
 
@@ -114,7 +118,12 @@ describe("uniq command - Real Bash Comparison", () => {
       const env = await setupFiles(testDir, {
         "test.txt": "apple\nbanana\napple\ncherry\nbanana\napple\n",
       });
-      await compareOutputs(env, testDir, "sort test.txt | uniq -c");
+      await compareOutputs(
+        env,
+        testDir,
+        "sort test.txt | uniq -c",
+        uniqCountOptions,
+      );
     });
   });
 
@@ -130,6 +139,7 @@ describe("uniq command - Real Bash Comparison", () => {
         env,
         testDir,
         'echo -e "a\\na\\nb\\nb\\nb" | uniq -c',
+        uniqCountOptions,
       );
     });
   });
@@ -139,7 +149,7 @@ describe("uniq command - Real Bash Comparison", () => {
       const env = await setupFiles(testDir, {
         "test.txt": "a\na\nb\nc\nc\nc\n",
       });
-      await compareOutputs(env, testDir, "uniq -cd test.txt");
+      await compareOutputs(env, testDir, "uniq -cd test.txt", uniqCountOptions);
     });
   });
 });

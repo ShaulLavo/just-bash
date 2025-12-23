@@ -189,7 +189,7 @@ async function listPath(
   recursive: boolean,
   showHeader: boolean,
   reverse: boolean = false,
-  isSubdir: boolean = false,
+  _isSubdir: boolean = false,
 ): Promise<ExecResult> {
   const showHidden = showAll || showAlmostAll;
   const fullPath = ctx.fs.resolvePath(ctx.cwd, path);
@@ -232,13 +232,11 @@ async function listPath(
     let stdout = "";
 
     // For recursive listing:
-    // - First directory doesn't get a header (unless multiple paths)
-    // - Subdirectories get header with path
-    // - When starting from '.', subdirs use './subdir:' format
+    // - All directories get a header (including the first one)
+    // - When starting from '.', show '.:'
+    // - Subdirectories use './subdir:' format when starting from '.'
     // - When starting from other path, subdirs use '{path}/subdir:' format
-    if (recursive && isSubdir) {
-      stdout += `${path}:\n`;
-    } else if (showHeader) {
+    if (recursive || showHeader) {
       stdout += `${path}:\n`;
     }
 

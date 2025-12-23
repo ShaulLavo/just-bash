@@ -114,8 +114,10 @@ describe("ls", () => {
       },
     });
     const result = await env.exec("ls -R /dir");
-    // First dir has no header, subdirs use path/subdir: format
-    expect(result.stdout).toBe("root.txt\nsubdir\n\n/dir/subdir:\nfile.txt\n");
+    // Linux ls -R includes header for all directories including the starting one
+    expect(result.stdout).toBe(
+      "/dir:\nroot.txt\nsubdir\n\n/dir/subdir:\nfile.txt\n",
+    );
     expect(result.stderr).toBe("");
   });
 

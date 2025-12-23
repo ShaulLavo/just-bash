@@ -3,6 +3,7 @@ import {
   cleanupTestDir,
   compareOutputs,
   createTestDir,
+  isLinux,
   setupFiles,
 } from "./test-helpers.js";
 
@@ -60,7 +61,9 @@ describe("cat command - Real Bash Comparison", () => {
     await compareOutputs(env, testDir, "cat newlines.txt");
   });
 
-  it("should match -n with multiple files", async () => {
+  // Linux cat -n continues line numbers across files, macOS resets per file
+  // BashEnv follows Linux behavior, so skip on macOS
+  it.skipIf(!isLinux)("should match -n with multiple files", async () => {
     const env = await setupFiles(testDir, {
       "a.txt": "file a line 1\nfile a line 2\n",
       "b.txt": "file b line 1\n",

@@ -163,8 +163,8 @@ describe("cat", () => {
         cwd: "/",
       });
       const result = await env.exec('echo "line2" | cat -n /file.txt -');
-      // Real bash restarts line numbers for each input source
-      expect(result.stdout).toBe("     1\tline1\n     1\tline2\n");
+      // Linux bash continues line numbers across input sources
+      expect(result.stdout).toBe("     1\tline1\n     2\tline2\n");
       expect(result.stderr).toBe("");
     });
   });

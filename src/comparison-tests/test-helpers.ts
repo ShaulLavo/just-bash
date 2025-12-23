@@ -8,6 +8,12 @@ import { BashEnv } from "../BashEnv.js";
 export const execAsync = promisify(exec);
 
 /**
+ * Returns true if running on Linux (for platform-specific tests)
+ * Some behaviors differ between macOS/BSD and Linux/GNU coreutils
+ */
+export const isLinux = os.platform() === "linux";
+
+/**
  * Creates a unique temp directory for testing
  */
 export async function createTestDir(): Promise<string> {
