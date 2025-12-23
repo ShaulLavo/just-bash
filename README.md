@@ -36,6 +36,82 @@ const limited = new BashEnv({
 });
 ```
 
+### Vercel Sandbox Compatible API
+
+BashEnv provides a `Sandbox` class that's API-compatible with [`@vercel/sandbox`](https://vercel.com/docs/vercel-sandbox), making it easy to swap implementations. You can start with BashEnv and switch to a real sandbox when you are ready.
+
+```typescript
+import { Sandbox } from "bash-env";
+
+// Create a sandbox instance
+const sandbox = await Sandbox.create({ cwd: "/app" });
+
+// Write files to the virtual filesystem
+await sandbox.writeFiles({
+  "/app/script.sh": 'echo "Hello World"',
+  "/app/data.json": '{"key": "value"}',
+});
+
+// Run commands and get results
+const cmd = await sandbox.runCommand("bash /app/script.sh");
+const output = await cmd.stdout(); // "Hello World\n"
+const exitCode = (await cmd.wait()).exitCode; // 0
+
+// Read files back
+const content = await sandbox.readFile("/app/data.json");
+
+// Create directories
+await sandbox.mkDir("/app/logs", { recursive: true });
+
+// Clean up (no-op for BashEnv, but API-compatible)
+await sandbox.stop();
+```
+
+#### Command Streaming
+
+The `Command` class provides multiple ways to access output:
+
+```typescript
+const cmd = await sandbox.runCommand("echo hello; echo world >&2");
+
+// Get stdout/stderr separately
+const stdout = await cmd.stdout(); // "hello\n"
+const stderr = await cmd.stderr(); // "world\n"
+
+// Get combined output
+const output = await cmd.output(); // "hello\nworld\n"
+
+// Stream logs as they arrive
+for await (const msg of cmd.logs()) {
+  console.log(msg.type, msg.data); // "stdout" "hello\n", "stderr" "world\n"
+}
+
+// Wait for completion
+const finished = await cmd.wait();
+console.log(finished.exitCode); // 0
+```
+
+#### BashEnv-Specific Extensions
+
+The Sandbox wrapper supports additional options not in the Vercel Sandbox API:
+
+```typescript
+const sandbox = await Sandbox.create({
+  // Standard options
+  cwd: "/app",
+  env: { NODE_ENV: "test" },
+
+  // BashEnv-specific extensions
+  fs: customFileSystem, // Custom IFileSystem implementation
+  maxCallDepth: 50, // Limit recursion depth (default: 100)
+  maxCommandCount: 1000, // Limit commands per exec (default: 10000)
+  maxLoopIterations: 500, // Limit loop iterations (default: 10000)
+});
+
+// Access underlying BashEnv for advanced operations
+const bashEnv = sandbox.bashEnvInstance;
+```
+
 ### Interactive Shell
 
 ```bash

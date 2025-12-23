@@ -11,3 +11,13 @@ export type {
   CpOptions,
   FileSystemFactory,
 } from './fs-interface.js';
+
+// Vercel Sandbox API compatible exports
+export {
+  Sandbox,
+  Command as SandboxCommand,
+  type CommandFinished as SandboxCommandFinished,
+  type SandboxOptions,
+  type WriteFilesInput,
+  type OutputMessage,
+} from './sandbox/index.js';
