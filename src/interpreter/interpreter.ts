@@ -24,6 +24,7 @@ import type {
   WordNode,
 } from "../ast/types.js";
 import type { IFileSystem } from "../fs-interface.js";
+import type { ExecutionLimits } from "../limits.js";
 import type { SecureFetch } from "../network/index.js";
 import { parseArithmeticExpression } from "../parser/arithmetic-parser.js";
 import { Parser } from "../parser/parser.js";
@@ -67,6 +68,7 @@ import {
   BreakError,
   ContinueError,
   ErrexitError,
+  ExecutionLimitError,
   ExitError,
   isScopeExitError,
   NounsetError,
@@ -80,7 +82,13 @@ import {
 import { callFunction, executeFunctionDef } from "./functions.js";
 import { getErrorMessage } from "./helpers/errors.js";
 import { checkReadonlyError } from "./helpers/readonly.js";
-import { failure, OK, result, testResult } from "./helpers/result.js";
+import {
+  failure,
+  OK,
+  result,
+  testResult,
+  throwExecutionLimit,
+} from "./helpers/result.js";
 import { applyRedirections } from "./redirections.js";
 import type { InterpreterContext, InterpreterState } from "./types.js";
 
@@ -89,9 +97,7 @@ export type { InterpreterContext, InterpreterState } from "./types.js";
 export interface InterpreterOptions {
   fs: IFileSystem;
   commands: CommandRegistry;
-  maxCallDepth: number;
-  maxCommandCount: number;
-  maxLoopIterations: number;
+  limits: Required<ExecutionLimits>;
   exec: (
     script: string,
     options?: { env?: Record<string, string>; cwd?: string },
@@ -110,9 +116,7 @@ export class Interpreter {
       state,
       fs: options.fs,
       commands: options.commands,
-      maxCallDepth: options.maxCallDepth,
-      maxCommandCount: options.maxCommandCount,
-      maxLoopIterations: options.maxLoopIterations,
+      limits: options.limits,
       execFn: options.exec,
       executeScript: this.executeScript.bind(this),
       executeStatement: this.executeStatement.bind(this),
@@ -144,6 +148,10 @@ export class Interpreter {
         // This allows 'eval exit 42' and 'source exit.sh' to exit properly
         if (error instanceof ExitError) {
           error.prependOutput(stdout, stderr);
+          throw error;
+        }
+        // ExecutionLimitError must always propagate - these are safety limits
+        if (error instanceof ExecutionLimitError) {
           throw error;
         }
         if (error instanceof ErrexitError) {
@@ -196,12 +204,11 @@ export class Interpreter {
 
   private async executeStatement(node: StatementNode): Promise<ExecResult> {
     this.ctx.state.commandCount++;
-    if (this.ctx.state.commandCount > this.ctx.maxCommandCount) {
-      const err = new Error(
-        `bash: too many commands executed (>${this.ctx.maxCommandCount}), increase maxCommandCount`,
+    if (this.ctx.state.commandCount > this.ctx.limits.maxCommandCount) {
+      throwExecutionLimit(
+        `too many commands executed (>${this.ctx.limits.maxCommandCount}), increase executionLimits.maxCommandCount`,
+        "commands",
       );
-      console.error(err.message);
-      throw err;
     }
 
     let stdout = "";
@@ -852,6 +859,7 @@ export class Interpreter {
       cwd: this.ctx.state.cwd,
       env: this.ctx.state.env,
       stdin,
+      limits: this.ctx.limits,
       exec: this.ctx.execFn,
       fetch: this.ctx.fetch,
       getRegisteredCommands: () => Array.from(this.ctx.commands.keys()),
@@ -1068,6 +1076,10 @@ export class Interpreter {
       this.ctx.state.cwd = savedCwd;
       this.ctx.state.loopDepth = savedLoopDepth;
       this.ctx.state.groupStdin = savedGroupStdin;
+      // ExecutionLimitError must always propagate - these are safety limits
+      if (error instanceof ExecutionLimitError) {
+        throw error;
+      }
       // BreakError/ContinueError should NOT propagate out of subshell
       // They only affect loops within the subshell
       if (error instanceof BreakError || error instanceof ContinueError) {
@@ -1126,6 +1138,10 @@ export class Interpreter {
     } catch (error) {
       // Restore groupStdin before handling error
       this.ctx.state.groupStdin = savedGroupStdin;
+      // ExecutionLimitError must always propagate - these are safety limits
+      if (error instanceof ExecutionLimitError) {
+        throw error;
+      }
       if (
         isScopeExitError(error) ||
         error instanceof ErrexitError ||
