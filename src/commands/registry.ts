@@ -77,7 +77,8 @@ export type CommandName =
   | "od"
   | "gzip"
   | "gunzip"
-  | "zcat";
+  | "zcat"
+  | "yq";
 
 /** Network command names (only available when network is configured) */
 export type NetworkCommandName = "curl";
@@ -391,6 +392,16 @@ const commandLoaders: LazyCommandDef<CommandName>[] = [
     load: async () => (await import("./gzip/gzip.js")).zcatCommand,
   },
 ];
+
+// yq requires native parsers (fast-xml-parser, etc.) that don't work in browsers
+// __BROWSER__ is defined by esbuild at build time for browser bundles
+declare const __BROWSER__: boolean | undefined;
+if (typeof __BROWSER__ === "undefined" || !__BROWSER__) {
+  commandLoaders.push({
+    name: "yq" as CommandName,
+    load: async () => (await import("./yq/yq.js")).yqCommand,
+  });
+}
 
 // Network commands - only registered when network is configured
 const networkCommandLoaders: LazyCommandDef<NetworkCommandName>[] = [

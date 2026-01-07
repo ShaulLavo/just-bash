@@ -1,53 +1,191 @@
 /**
- * jq AST evaluator
+ * Query expression evaluator
  *
- * Evaluates a parsed jq AST against a JSON value.
+ * Evaluates a parsed query AST against any value.
+ * Used by jq, yq, and other query-based commands.
  */
 
 import { ExecutionLimitError } from "../../interpreter/errors.js";
 import type { AstNode } from "./parser.js";
 
-export type JqValue = unknown;
+export type QueryValue = unknown;
 
 const DEFAULT_MAX_JQ_ITERATIONS = 10000;
 
-export interface JqExecutionLimits {
+export interface QueryExecutionLimits {
   maxIterations?: number;
 }
 
 export interface EvalContext {
-  vars: Map<string, JqValue>;
-  limits: Required<JqExecutionLimits>;
+  vars: Map<string, QueryValue>;
+  limits: Required<QueryExecutionLimits>;
+  env?: Record<string, string | undefined>;
+  /** Original document root for parent/root navigation */
+  root?: QueryValue;
+  /** Current path from root for parent navigation */
+  currentPath?: (string | number)[];
 }
 
-function createContext(limits?: JqExecutionLimits): EvalContext {
+function createContext(options?: EvaluateOptions): EvalContext {
   return {
     vars: new Map(),
     limits: {
-      maxIterations: limits?.maxIterations ?? DEFAULT_MAX_JQ_ITERATIONS,
+      maxIterations:
+        options?.limits?.maxIterations ?? DEFAULT_MAX_JQ_ITERATIONS,
     },
+    env: options?.env,
   };
 }
 
-function withVar(ctx: EvalContext, name: string, value: JqValue): EvalContext {
+function withVar(
+  ctx: EvalContext,
+  name: string,
+  value: QueryValue,
+): EvalContext {
   const newVars = new Map(ctx.vars);
   newVars.set(name, value);
-  return { vars: newVars, limits: ctx.limits };
+  return {
+    vars: newVars,
+    limits: ctx.limits,
+    env: ctx.env,
+    root: ctx.root,
+    currentPath: ctx.currentPath,
+  };
+}
+
+function getValueAtPath(
+  root: QueryValue,
+  path: (string | number)[],
+): QueryValue {
+  let v = root;
+  for (const key of path) {
+    if (v && typeof v === "object") {
+      v = (v as Record<string, unknown>)[key as string];
+    } else {
+      return undefined;
+    }
+  }
+  return v;
+}
+
+/**
+ * Extract a simple path from an AST node (e.g., .a.b.c -> ["a", "b", "c"])
+ * Returns null if the AST is not a simple path expression.
+ * Handles Pipe nodes with parent/root to track path adjustments.
+ */
+function extractPathFromAst(ast: AstNode): (string | number)[] | null {
+  if (ast.type === "Identity") return [];
+  if (ast.type === "Field") {
+    const basePath = ast.base ? extractPathFromAst(ast.base) : [];
+    if (basePath === null) return null;
+    return [...basePath, ast.name];
+  }
+  if (ast.type === "Index" && ast.index.type === "Literal") {
+    const basePath = ast.base ? extractPathFromAst(ast.base) : [];
+    if (basePath === null) return null;
+    const idx = ast.index.value;
+    if (typeof idx === "number" || typeof idx === "string") {
+      return [...basePath, idx];
+    }
+    return null;
+  }
+  // Handle Pipe nodes to track path through parent/root calls
+  if (ast.type === "Pipe") {
+    const leftPath = extractPathFromAst(ast.left);
+    if (leftPath === null) return null;
+    // Apply right side transformation to the path
+    return applyPathTransform(leftPath, ast.right);
+  }
+  // Handle parent/root builtins for path adjustment
+  if (ast.type === "Call") {
+    if (ast.name === "parent") {
+      // parent without context returns null (needs base path from pipe)
+      return null;
+    }
+    if (ast.name === "root") {
+      // root resets to document root
+      return null;
+    }
+  }
+  // For other node types, we can't extract a simple path
+  return null;
+}
+
+/**
+ * Apply a path transformation (like parent or root) to a base path.
+ */
+function applyPathTransform(
+  basePath: (string | number)[],
+  ast: AstNode,
+): (string | number)[] | null {
+  if (ast.type === "Call") {
+    if (ast.name === "parent") {
+      // Get levels - default is 1, or extract from literal arg
+      let levels = 1;
+      if (ast.args.length > 0 && ast.args[0].type === "Literal") {
+        const arg = ast.args[0].value;
+        if (typeof arg === "number") levels = arg;
+      }
+      if (levels >= 0) {
+        // Positive: go up n levels
+        return basePath.slice(0, Math.max(0, basePath.length - levels));
+      } else {
+        // Negative: index from root (-1 = root, -2 = one below root)
+        const targetLen = -levels - 1;
+        return basePath.slice(0, Math.min(targetLen, basePath.length));
+      }
+    }
+    if (ast.name === "root") {
+      return [];
+    }
+  }
+  // For Field/Index on right side, extend the path
+  if (ast.type === "Field") {
+    const rightPath = extractPathFromAst(ast);
+    if (rightPath !== null) {
+      return [...basePath, ...rightPath];
+    }
+  }
+  if (ast.type === "Index" && ast.index.type === "Literal") {
+    const rightPath = extractPathFromAst(ast);
+    if (rightPath !== null) {
+      return [...basePath, ...rightPath];
+    }
+  }
+  // For nested pipes, recurse
+  if (ast.type === "Pipe") {
+    const afterLeft = applyPathTransform(basePath, ast.left);
+    if (afterLeft === null) return null;
+    return applyPathTransform(afterLeft, ast.right);
+  }
+  // Identity doesn't change path
+  if (ast.type === "Identity") {
+    return basePath;
+  }
+  // For other transformations, we lose path tracking
+  return null;
 }
 
 export interface EvaluateOptions {
-  limits?: JqExecutionLimits;
+  limits?: QueryExecutionLimits;
+  env?: Record<string, string | undefined>;
 }
 
 export function evaluate(
-  value: JqValue,
+  value: QueryValue,
   ast: AstNode,
   ctxOrOptions?: EvalContext | EvaluateOptions,
-): JqValue[] {
-  const ctx: EvalContext =
+): QueryValue[] {
+  let ctx: EvalContext =
     ctxOrOptions && "vars" in ctxOrOptions
       ? ctxOrOptions
-      : createContext((ctxOrOptions as EvaluateOptions | undefined)?.limits);
+      : createContext(ctxOrOptions as EvaluateOptions | undefined);
+
+  // Initialize root if not set (first evaluation)
+  if (ctx.root === undefined) {
+    ctx = { ...ctx, root: value, currentPath: [] };
+  }
+
   switch (ast.type) {
     case "Identity":
       return [value];
@@ -56,7 +194,8 @@ export function evaluate(
       const bases = ast.base ? evaluate(value, ast.base, ctx) : [value];
       return bases.flatMap((v) => {
         if (v && typeof v === "object" && !Array.isArray(v)) {
-          return [(v as Record<string, unknown>)[ast.name]];
+          const result = (v as Record<string, unknown>)[ast.name];
+          return [result === undefined ? null : result];
         }
         return [null];
       });
@@ -112,7 +251,19 @@ export function evaluate(
 
     case "Pipe": {
       const leftResults = evaluate(value, ast.left, ctx);
-      return leftResults.flatMap((v) => evaluate(v, ast.right, ctx));
+      // Extract path from left side for parent/parents/root navigation
+      const leftPath = extractPathFromAst(ast.left);
+      return leftResults.flatMap((v) => {
+        // If left side was a simple path, update context for right side
+        if (leftPath !== null) {
+          const newCtx = {
+            ...ctx,
+            currentPath: [...(ctx.currentPath ?? []), ...leftPath],
+          };
+          return evaluate(v, ast.right, newCtx);
+        }
+        return evaluate(v, ast.right, ctx);
+      });
     }
 
     case "Comma": {
@@ -212,14 +363,19 @@ export function evaluate(
     }
 
     case "VarRef": {
+      // Special case: $ENV returns environment variables
+      // Note: ast.name includes the $ prefix (e.g., "$ENV")
+      if (ast.name === "$ENV") {
+        return [ctx.env ?? {}];
+      }
       const v = ctx.vars.get(ast.name);
       return v !== undefined ? [v] : [null];
     }
 
     case "Recurse": {
-      const results: JqValue[] = [];
+      const results: QueryValue[] = [];
       const seen = new WeakSet<object>();
-      const walk = (val: JqValue) => {
+      const walk = (val: QueryValue) => {
         if (val && typeof val === "object") {
           if (seen.has(val as object)) return;
           seen.add(val as object);
@@ -273,7 +429,7 @@ export function evaluate(
     case "Foreach": {
       const items = evaluate(value, ast.expr, ctx);
       let state = evaluate(value, ast.init, ctx)[0];
-      const results: JqValue[] = [];
+      const results: QueryValue[] = [];
       for (const item of items) {
         const newCtx = withVar(ctx, ast.varName, item);
         state = evaluate(state, ast.update, newCtx)[0];
@@ -302,13 +458,16 @@ function normalizeIndex(idx: number, len: number): number {
 }
 
 function applyUpdate(
-  root: JqValue,
+  root: QueryValue,
   pathExpr: AstNode,
   op: string,
   valueExpr: AstNode,
   ctx: EvalContext,
-): JqValue {
-  function computeNewValue(current: JqValue, newVal: JqValue): JqValue {
+): QueryValue {
+  function computeNewValue(
+    current: QueryValue,
+    newVal: QueryValue,
+  ): QueryValue {
     switch (op) {
       case "=":
         return newVal;
@@ -356,10 +515,10 @@ function applyUpdate(
   }
 
   function updateRecursive(
-    val: JqValue,
+    val: QueryValue,
     path: AstNode,
-    transform: (current: JqValue) => JqValue,
-  ): JqValue {
+    transform: (current: QueryValue) => QueryValue,
+  ): QueryValue {
     switch (path.type) {
       case "Identity":
         return transform(val);
@@ -437,7 +596,7 @@ function applyUpdate(
       }
 
       case "Iterate": {
-        const applyToContainer = (container: JqValue): JqValue => {
+        const applyToContainer = (container: QueryValue): QueryValue => {
           if (Array.isArray(container)) {
             return container.map((item) => transform(item));
           }
@@ -467,7 +626,7 @@ function applyUpdate(
     }
   }
 
-  const transformer = (current: JqValue): JqValue => {
+  const transformer = (current: QueryValue): QueryValue => {
     if (op === "|=") {
       return computeNewValue(current, current);
     }
@@ -478,8 +637,12 @@ function applyUpdate(
   return updateRecursive(root, pathExpr, transformer);
 }
 
-function applyDel(root: JqValue, pathExpr: AstNode, ctx: EvalContext): JqValue {
-  function deleteAt(val: JqValue, path: AstNode): JqValue {
+function applyDel(
+  root: QueryValue,
+  pathExpr: AstNode,
+  ctx: EvalContext,
+): QueryValue {
+  function deleteAt(val: QueryValue, path: AstNode): QueryValue {
     switch (path.type) {
       case "Identity":
         return null;
@@ -536,17 +699,17 @@ function applyDel(root: JqValue, pathExpr: AstNode, ctx: EvalContext): JqValue {
   return deleteAt(root, pathExpr);
 }
 
-function isTruthy(v: JqValue): boolean {
+function isTruthy(v: QueryValue): boolean {
   return v !== null && v !== false;
 }
 
 function evalBinaryOp(
-  value: JqValue,
+  value: QueryValue,
   op: string,
   left: AstNode,
   right: AstNode,
   ctx: EvalContext,
-): JqValue[] {
+): QueryValue[] {
   // Short-circuit for 'and' and 'or'
   if (op === "and") {
     const leftVals = evaluate(value, left, ctx);
@@ -647,11 +810,11 @@ function evalBinaryOp(
   );
 }
 
-function deepEqual(a: JqValue, b: JqValue): boolean {
+function deepEqual(a: QueryValue, b: QueryValue): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
-function compare(a: JqValue, b: JqValue): number {
+function compare(a: QueryValue, b: QueryValue): number {
   if (typeof a === "number" && typeof b === "number") return a - b;
   if (typeof a === "string" && typeof b === "string") return a.localeCompare(b);
   return 0;
@@ -688,11 +851,11 @@ function deepMerge(
 // ============================================================================
 
 function evalBuiltin(
-  value: JqValue,
+  value: QueryValue,
   name: string,
   args: AstNode[],
   ctx: EvalContext,
-): JqValue[] {
+): QueryValue[] {
   switch (name) {
     case "keys":
       if (Array.isArray(value)) return [value.map((_, i) => i)];
@@ -823,7 +986,7 @@ function evalBuiltin(
     case "unique":
       if (Array.isArray(value)) {
         const seen = new Set<string>();
-        const result: JqValue[] = [];
+        const result: QueryValue[] = [];
         for (const item of value) {
           const key = JSON.stringify(item);
           if (!seen.has(key)) {
@@ -838,7 +1001,7 @@ function evalBuiltin(
     case "unique_by": {
       if (!Array.isArray(value) || args.length === 0) return [null];
       const seen = new Set<string>();
-      const result: JqValue[] = [];
+      const result: QueryValue[] = [];
       for (const item of value) {
         const key = JSON.stringify(evaluate(item, args[0], ctx)[0]);
         if (!seen.has(key)) {
@@ -851,7 +1014,7 @@ function evalBuiltin(
 
     case "group_by": {
       if (!Array.isArray(value) || args.length === 0) return [null];
-      const groups = new Map<string, JqValue[]>();
+      const groups = new Map<string, QueryValue[]>();
       for (const item of value) {
         const key = JSON.stringify(evaluate(item, args[0], ctx)[0]);
         if (!groups.has(key)) groups.set(key, []);
@@ -1021,7 +1184,7 @@ function evalBuiltin(
       if (args.length === 0) return [null];
       const paths = evaluate(value, args[0], ctx);
       const path = paths[0] as (string | number)[];
-      let current: JqValue = value;
+      let current: QueryValue = value;
       for (const key of path) {
         if (current === null || current === undefined) return [null];
         if (Array.isArray(current) && typeof key === "number") {
@@ -1069,7 +1232,7 @@ function evalBuiltin(
 
     case "paths": {
       const paths: (string | number)[][] = [];
-      const walk = (v: JqValue, path: (string | number)[]) => {
+      const walk = (v: QueryValue, path: (string | number)[]) => {
         if (v && typeof v === "object") {
           if (Array.isArray(v)) {
             for (let i = 0; i < v.length; i++) {
@@ -1087,7 +1250,7 @@ function evalBuiltin(
       walk(value, []);
       if (args.length > 0) {
         return paths.filter((p) => {
-          let v: JqValue = value;
+          let v: QueryValue = value;
           for (const k of p) {
             if (Array.isArray(v) && typeof k === "number") {
               v = v[k];
@@ -1106,7 +1269,7 @@ function evalBuiltin(
 
     case "leaf_paths": {
       const paths: (string | number)[][] = [];
-      const walk = (v: JqValue, path: (string | number)[]) => {
+      const walk = (v: QueryValue, path: (string | number)[]) => {
         if (v === null || typeof v !== "object") {
           paths.push(path);
         } else if (Array.isArray(v)) {
@@ -1514,12 +1677,12 @@ function evalBuiltin(
       return [Date.now() / 1000];
 
     case "env":
-      return [{}];
+      return [ctx.env ?? {}];
 
     case "recurse": {
       if (args.length === 0) {
-        const results: JqValue[] = [];
-        const walk = (v: JqValue) => {
+        const results: QueryValue[] = [];
+        const walk = (v: QueryValue) => {
           results.push(v);
           if (Array.isArray(v)) {
             for (const item of v) walk(item);
@@ -1532,9 +1695,9 @@ function evalBuiltin(
         walk(value);
         return results;
       }
-      const results: JqValue[] = [];
+      const results: QueryValue[] = [];
       const seen = new Set<string>();
-      const walk = (v: JqValue) => {
+      const walk = (v: QueryValue) => {
         const key = JSON.stringify(v);
         if (seen.has(key)) return;
         seen.add(key);
@@ -1554,12 +1717,12 @@ function evalBuiltin(
     case "walk": {
       if (args.length === 0) return [value];
       const seen = new WeakSet<object>();
-      const walkFn = (v: JqValue): JqValue => {
+      const walkFn = (v: QueryValue): QueryValue => {
         if (v && typeof v === "object") {
           if (seen.has(v as object)) return v;
           seen.add(v as object);
         }
-        let transformed: JqValue;
+        let transformed: QueryValue;
         if (Array.isArray(v)) {
           transformed = v.map(walkFn);
         } else if (v && typeof v === "object") {
@@ -1583,7 +1746,7 @@ function evalBuiltin(
       const maxLen = Math.max(
         ...value.map((row) => (Array.isArray(row) ? row.length : 0)),
       );
-      const result: JqValue[][] = [];
+      const result: QueryValue[][] = [];
       for (let i = 0; i < maxLen; i++) {
         result.push(value.map((row) => (Array.isArray(row) ? row[i] : null)));
       }
@@ -1650,7 +1813,7 @@ function evalBuiltin(
 
     case "while": {
       if (args.length < 2) return [value];
-      const results: JqValue[] = [];
+      const results: QueryValue[] = [];
       let current = value;
       const maxIterations = ctx.limits.maxIterations;
       for (let i = 0; i < maxIterations; i++) {
@@ -1672,7 +1835,7 @@ function evalBuiltin(
 
     case "repeat": {
       if (args.length === 0) return [value];
-      const results: JqValue[] = [];
+      const results: QueryValue[] = [];
       let current = value;
       const maxIterations = ctx.limits.maxIterations;
       for (let i = 0; i < maxIterations; i++) {
@@ -1696,13 +1859,134 @@ function evalBuiltin(
     case "input_line_number":
       return [1];
 
+    // Format strings
+    case "@base64":
+      if (typeof value === "string") {
+        // Use Buffer for Node.js, btoa for browser
+        if (typeof Buffer !== "undefined") {
+          return [Buffer.from(value, "utf-8").toString("base64")];
+        }
+        return [btoa(value)];
+      }
+      return [null];
+
+    case "@base64d":
+      if (typeof value === "string") {
+        // Use Buffer for Node.js, atob for browser
+        if (typeof Buffer !== "undefined") {
+          return [Buffer.from(value, "base64").toString("utf-8")];
+        }
+        return [atob(value)];
+      }
+      return [null];
+
+    case "@uri":
+      if (typeof value === "string") {
+        return [encodeURIComponent(value)];
+      }
+      return [null];
+
+    case "@csv": {
+      if (!Array.isArray(value)) return [null];
+      const csvEscaped = value.map((v) => {
+        const s = String(v ?? "");
+        // CSV standard: escape quotes by doubling them, wrap in quotes if needed
+        if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+          return `"${s.replace(/"/g, '""')}"`;
+        }
+        return s;
+      });
+      return [csvEscaped.join(",")];
+    }
+
+    case "@tsv": {
+      if (!Array.isArray(value)) return [null];
+      return [
+        value
+          .map((v) =>
+            String(v ?? "")
+              .replace(/\t/g, "\\t")
+              .replace(/\n/g, "\\n"),
+          )
+          .join("\t"),
+      ];
+    }
+
+    case "@json":
+      return [JSON.stringify(value)];
+
+    case "@html":
+      if (typeof value === "string") {
+        return [
+          value
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;"),
+        ];
+      }
+      return [null];
+
+    case "@sh":
+      if (typeof value === "string") {
+        // Shell escape: wrap in single quotes, escape any single quotes
+        return [`'${value.replace(/'/g, "'\\''")}'`];
+      }
+      return [null];
+
+    case "@text":
+      if (typeof value === "string") return [value];
+      if (value === null || value === undefined) return [""];
+      return [String(value)];
+
+    // Navigation operators
+    case "parent": {
+      if (ctx.root === undefined || ctx.currentPath === undefined) return [];
+      const path = ctx.currentPath;
+      if (path.length === 0) return []; // At root, no parent
+
+      // Get levels argument (default: 1)
+      const levels =
+        args.length > 0 ? (evaluate(value, args[0], ctx)[0] as number) : 1;
+
+      if (levels >= 0) {
+        // Positive: go up n levels
+        if (levels > path.length) return []; // Beyond root
+        const parentPath = path.slice(0, path.length - levels);
+        return [getValueAtPath(ctx.root, parentPath)];
+      } else {
+        // Negative: index from root (-1 = root, -2 = one below root, etc.)
+        // -1 means path length 0 (root)
+        // -2 means path length 1 (one level below root)
+        const targetLen = -levels - 1;
+        if (targetLen >= path.length) return [value]; // Beyond current
+        const parentPath = path.slice(0, targetLen);
+        return [getValueAtPath(ctx.root, parentPath)];
+      }
+    }
+
+    case "parents": {
+      if (ctx.root === undefined || ctx.currentPath === undefined) return [[]];
+      const path = ctx.currentPath;
+      const parents: QueryValue[] = [];
+      // Build array of parents from immediate parent to root
+      for (let i = path.length - 1; i >= 0; i--) {
+        parents.push(getValueAtPath(ctx.root, path.slice(0, i)));
+      }
+      return [parents];
+    }
+
+    case "root":
+      return ctx.root !== undefined ? [ctx.root] : [];
+
     default:
       throw new Error(`Unknown function: ${name}`);
   }
 }
 
-function compareJq(a: JqValue, b: JqValue): number {
-  const typeOrder = (v: JqValue): number => {
+function compareJq(a: QueryValue, b: QueryValue): number {
+  const typeOrder = (v: QueryValue): number => {
     if (v === null) return 0;
     if (typeof v === "boolean") return 1;
     if (typeof v === "number") return 2;
@@ -1731,7 +2015,7 @@ function compareJq(a: JqValue, b: JqValue): number {
   return 0;
 }
 
-function containsDeep(a: JqValue, b: JqValue): boolean {
+function containsDeep(a: QueryValue, b: QueryValue): boolean {
   if (deepEqual(a, b)) return true;
   if (Array.isArray(a) && Array.isArray(b)) {
     return b.every((bItem) => a.some((aItem) => containsDeep(aItem, bItem)));
@@ -1754,10 +2038,10 @@ function containsDeep(a: JqValue, b: JqValue): boolean {
 }
 
 function setPath(
-  value: JqValue,
+  value: QueryValue,
   path: (string | number)[],
-  newVal: JqValue,
-): JqValue {
+  newVal: QueryValue,
+): QueryValue {
   if (path.length === 0) return newVal;
 
   const [head, ...rest] = path;
@@ -1781,7 +2065,7 @@ function setPath(
   return obj;
 }
 
-function deletePath(value: JqValue, path: (string | number)[]): JqValue {
+function deletePath(value: QueryValue, path: (string | number)[]): QueryValue {
   if (path.length === 0) return null;
   if (path.length === 1) {
     const key = path[0];
@@ -1813,7 +2097,7 @@ function deletePath(value: JqValue, path: (string | number)[]): JqValue {
 }
 
 function collectPaths(
-  value: JqValue,
+  value: QueryValue,
   expr: AstNode,
   ctx: EvalContext,
   currentPath: (string | number)[],

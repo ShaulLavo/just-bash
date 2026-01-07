@@ -69,6 +69,33 @@ function extractReadmeCommands(readme: string): Set<string> {
 }
 
 /**
+ * Extract command names from AGENTS.npm.md "Available Commands" section
+ */
+function extractAgentsCommands(agents: string): Set<string> {
+  const commands = new Set<string>();
+
+  // Find the "Available Commands" section (stop at "All commands support" or next ## heading)
+  const supportedMatch = agents.match(
+    /## Available Commands\n([\s\S]*?)(?=\nAll commands support|\n## [A-Z]|\$)/,
+  );
+  if (!supportedMatch) {
+    throw new Error(
+      "Could not find 'Available Commands' section in AGENTS.npm.md",
+    );
+  }
+
+  const section = supportedMatch[1];
+
+  // Extract all backtick-quoted command names
+  const cmdPattern = /`([a-z0-9_-]+)`/g;
+  for (const match of section.matchAll(cmdPattern)) {
+    commands.add(match[1]);
+  }
+
+  return commands;
+}
+
+/**
  * Extract TypeScript code blocks from markdown
  */
 function extractTypeScriptBlocks(content: string): string[] {
@@ -335,6 +362,51 @@ describe("README validation", () => {
   });
 });
 
+describe("AGENTS.npm.md validation", () => {
+  describe("command list completeness", () => {
+    it("should list all registered commands", () => {
+      const agents = parseAgents();
+      const agentsCommands = extractAgentsCommands(agents);
+      const registryCommands = new Set([
+        ...getCommandNames(),
+        ...getNetworkCommandNames(),
+      ]);
+
+      // Commands in registry but not in AGENTS.npm.md
+      const missingFromAgents: string[] = [];
+      for (const cmd of registryCommands) {
+        if (!agentsCommands.has(cmd)) {
+          missingFromAgents.push(cmd);
+        }
+      }
+
+      // Commands in AGENTS.npm.md but not in registry
+      const extraInAgents: string[] = [];
+      for (const cmd of agentsCommands) {
+        if (!registryCommands.has(cmd)) {
+          extraInAgents.push(cmd);
+        }
+      }
+
+      // Check for missing commands (not in AGENTS.npm.md)
+      if (missingFromAgents.length > 0) {
+        expect.fail(
+          `Commands missing from AGENTS.npm.md: ${missingFromAgents.join(", ")}\n` +
+            "Add these to the 'Available Commands' section in AGENTS.npm.md",
+        );
+      }
+
+      // Check for extra commands (in AGENTS.npm.md but not registered)
+      if (extraInAgents.length > 0) {
+        expect.fail(
+          `Commands in AGENTS.npm.md but not in registry: ${extraInAgents.join(", ")}\n` +
+            "Either add these to the registry or remove from AGENTS.npm.md",
+        );
+      }
+    });
+  });
+});
+
 describe("Documentation TypeScript examples", () => {
   it("should have TypeScript code blocks in README", () => {
     const readme = parseReadme();
@@ -380,8 +452,34 @@ describe("AGENTS.npm.md Bash examples", () => {
       files: {
         "/data/input.txt": "hello world\ntest pattern\nfoo bar\n",
         "/data/data.json":
-          '{"items": [{"name": "a", "active": true}, {"name": "b", "active": false}]}',
-        "/data/data.csv": "name,category,value\nalice,A,10\nbob,B,20\n",
+          '{"items": [{"name": "a", "active": true}, {"name": "b", "active": false}], "name": "test", "users": [{"active": true, "role": "admin"}, {"active": false, "role": "user"}]}',
+        "/data/data.csv":
+          "name,category,value,status\nalice,A,10,active\nbob,B,20,inactive\n",
+        "/data/config.yaml":
+          "config:\n  database:\n    host: localhost\n    port: 5432\nusers:\n  - name: alice\n    role: admin\n  - name: bob\n    role: user\n",
+        "/data/data.yaml": "name: test\nvalue: 42\n",
+        "/data/users.yaml":
+          "users:\n  - name: alice\n    role: admin\n  - name: bob\n    role: user\n",
+        "/data/data.xml":
+          '<root><users><user><name>alice</name></user></users><item id="123">test</item></root>',
+        "/data/config.ini": "[database]\nhost=localhost\nport=5432\n",
+        "/data/page.html": "<h1>Title</h1><p>Some text content</p>",
+        // TOML files
+        "/data/Cargo.toml":
+          '[package]\nname = "my-project"\nversion = "1.0.0"\n\n[dependencies]\nserde = "1.0"\n',
+        "/data/pyproject.toml":
+          '[tool.poetry]\nname = "my-package"\nversion = "2.0.0"\n\n[tool.poetry.dependencies]\npython = "^3.9"\n',
+        "/data/config.toml":
+          '[server]\nhost = "localhost"\nport = 8080\n\n[database]\nurl = "postgres://localhost/db"\n',
+        // TSV file
+        "/data/data.tsv": "name\tcategory\tvalue\nalice\tA\t10\nbob\tB\t20\n",
+        // Front-matter files
+        "/data/post.md":
+          "---\ntitle: My Post\nauthor: Alice\ntags:\n  - coding\n  - tutorial\n---\n\n# Content here\n\nThis is the body of the post.\n",
+        "/data/blog-post.md":
+          "---\ntitle: Blog Post\ntags:\n  - tech\n  - news\n---\n\n# Blog content\n",
+        "/data/hugo-post.md":
+          '+++\ntitle = "Hugo Post"\ndate = "2024-01-01"\ndraft = false\n+++\n\n# Hugo content\n',
         "/src/app.ts": "// TODO: implement\nexport const x = 1;",
         "/src/lib.ts": "// helper\nexport const y = 2;",
         // Mock type definition files for "Discovering Types" examples
