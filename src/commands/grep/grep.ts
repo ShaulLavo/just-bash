@@ -1,773 +1,848 @@
-import type { Command, CommandContext, ExecResult } from "../../types.js";
-import { matchGlob } from "../../utils/glob.js";
-import { hasHelpFlag, showHelp, unknownOption } from "../help.js";
+import type { Command, CommandContext, ExecResult } from '../../types.js'
+import { matchGlob } from '../../utils/glob.js'
+import { hasHelpFlag, showHelp, unknownOption } from '../help.js'
 
 const grepHelp = {
-  name: "grep",
-  summary: "print lines that match patterns",
-  usage: "grep [OPTION]... PATTERN [FILE]...",
-  options: [
-    "-E, --extended-regexp    PATTERN is an extended regular expression",
-    "-P, --perl-regexp        PATTERN is a Perl regular expression",
-    "-F, --fixed-strings      PATTERN is a set of newline-separated strings",
-    "-i, --ignore-case        ignore case distinctions",
-    "-v, --invert-match       select non-matching lines",
-    "-w, --word-regexp        match only whole words",
-    "-x, --line-regexp        match only whole lines",
-    "-c, --count              print only a count of matching lines",
-    "-l, --files-with-matches print only names of files with matches",
-    "-L, --files-without-match print names of files with no matches",
-    "-m NUM, --max-count=NUM  stop after NUM matches",
-    "-n, --line-number        print line number with output lines",
-    "-h, --no-filename        suppress the file name prefix on output",
-    "-o, --only-matching      show only nonempty parts of lines that match",
-    "-q, --quiet, --silent    suppress all normal output",
-    "-r, -R, --recursive      search directories recursively",
-    "-A NUM                   print NUM lines of trailing context",
-    "-B NUM                   print NUM lines of leading context",
-    "-C NUM                   print NUM lines of context",
-    "-e PATTERN               use PATTERN for matching",
-    "    --include=GLOB       search only files matching GLOB",
-    "    --exclude=GLOB       skip files matching GLOB",
-    "    --exclude-dir=DIR    skip directories matching DIR",
-    "    --help               display this help and exit",
-  ],
-};
+	name: 'grep',
+	summary: 'print lines that match patterns',
+	usage: 'grep [OPTION]... PATTERN [FILE]...',
+	options: [
+		'-E, --extended-regexp    PATTERN is an extended regular expression',
+		'-P, --perl-regexp        PATTERN is a Perl regular expression',
+		'-F, --fixed-strings      PATTERN is a set of newline-separated strings',
+		'-i, --ignore-case        ignore case distinctions',
+		'-v, --invert-match       select non-matching lines',
+		'-w, --word-regexp        match only whole words',
+		'-x, --line-regexp        match only whole lines',
+		'-c, --count              print only a count of matching lines',
+		'-l, --files-with-matches print only names of files with matches',
+		'-L, --files-without-match print names of files with no matches',
+		'-m NUM, --max-count=NUM  stop after NUM matches',
+		'-n, --line-number        print line number with output lines',
+		'-h, --no-filename        suppress the file name prefix on output',
+		'-o, --only-matching      show only nonempty parts of lines that match',
+		'-q, --quiet, --silent    suppress all normal output',
+		'-r, -R, --recursive      search directories recursively',
+		'-A NUM                   print NUM lines of trailing context',
+		'-B NUM                   print NUM lines of leading context',
+		'-C NUM                   print NUM lines of context',
+		'-e PATTERN               use PATTERN for matching',
+		'    --include=GLOB       search only files matching GLOB',
+		'    --exclude=GLOB       skip files matching GLOB',
+		'    --exclude-dir=DIR    skip directories matching DIR',
+		'    --help               display this help and exit',
+	],
+}
 
 export const grepCommand: Command = {
-  name: "grep",
+	name: 'grep',
 
-  async execute(args: string[], ctx: CommandContext): Promise<ExecResult> {
-    if (hasHelpFlag(args)) {
-      return showHelp(grepHelp);
-    }
+	async execute(args: string[], ctx: CommandContext): Promise<ExecResult> {
+		if (hasHelpFlag(args)) {
+			return showHelp(grepHelp)
+		}
 
-    let ignoreCase = false;
-    let showLineNumbers = false;
-    let invertMatch = false;
-    let countOnly = false;
-    let filesWithMatches = false;
-    let filesWithoutMatch = false;
-    let recursive = false;
-    let wholeWord = false;
-    let lineRegexp = false;
-    let extendedRegex = false;
-    let perlRegex = false;
-    let fixedStrings = false;
-    let onlyMatching = false;
-    let noFilename = false;
-    let quietMode = false;
-    let maxCount = 0; // 0 means unlimited
-    let beforeContext = 0;
-    let afterContext = 0;
-    const includePatterns: string[] = [];
-    const excludePatterns: string[] = [];
-    const excludeDirPatterns: string[] = [];
-    let pattern: string | null = null;
-    const files: string[] = [];
+		let ignoreCase = false
+		let showLineNumbers = false
+		let invertMatch = false
+		let countOnly = false
+		let filesWithMatches = false
+		let filesWithoutMatch = false
+		let recursive = false
+		let wholeWord = false
+		let lineRegexp = false
+		let extendedRegex = false
+		let perlRegex = false
+		let fixedStrings = false
+		let onlyMatching = false
+		let noFilename = false
+		let quietMode = false
+		let maxCount = 0 // 0 means unlimited
+		let beforeContext = 0
+		let afterContext = 0
+		const includePatterns: string[] = []
+		const excludePatterns: string[] = []
+		const excludeDirPatterns: string[] = []
+		let pattern: string | null = null
+		const files: string[] = []
 
-    // Parse arguments
-    for (let i = 0; i < args.length; i++) {
-      const arg = args[i];
+		// Parse arguments
+		for (let i = 0; i < args.length; i++) {
+			const arg = args[i]
 
-      if (arg.startsWith("-") && arg !== "-") {
-        if (arg === "-e" && i + 1 < args.length) {
-          pattern = args[++i];
-          continue;
-        }
+			if (arg.startsWith('-') && arg !== '-') {
+				if (arg === '-e' && i + 1 < args.length) {
+					pattern = args[++i]
+					continue
+				}
 
-        // Handle --include=pattern (can be specified multiple times)
-        if (arg.startsWith("--include=")) {
-          includePatterns.push(arg.slice("--include=".length));
-          continue;
-        }
+				// Handle --include=pattern (can be specified multiple times)
+				if (arg.startsWith('--include=')) {
+					includePatterns.push(arg.slice('--include='.length))
+					continue
+				}
 
-        // Handle --exclude=pattern (can be specified multiple times)
-        if (arg.startsWith("--exclude=")) {
-          excludePatterns.push(arg.slice("--exclude=".length));
-          continue;
-        }
+				// Handle --exclude=pattern (can be specified multiple times)
+				if (arg.startsWith('--exclude=')) {
+					excludePatterns.push(arg.slice('--exclude='.length))
+					continue
+				}
 
-        // Handle --exclude-dir=pattern (can be specified multiple times)
-        if (arg.startsWith("--exclude-dir=")) {
-          excludeDirPatterns.push(arg.slice("--exclude-dir=".length));
-          continue;
-        }
+				// Handle --exclude-dir=pattern (can be specified multiple times)
+				if (arg.startsWith('--exclude-dir=')) {
+					excludeDirPatterns.push(arg.slice('--exclude-dir='.length))
+					continue
+				}
 
-        // Handle --max-count=N
-        if (arg.startsWith("--max-count=")) {
-          maxCount = parseInt(arg.slice("--max-count=".length), 10);
-          continue;
-        }
+				// Handle --max-count=N
+				if (arg.startsWith('--max-count=')) {
+					maxCount = parseInt(arg.slice('--max-count='.length), 10)
+					continue
+				}
 
-        // Handle -m N or -mN
-        const maxCountMatch = arg.match(/^-m(\d+)$/);
-        if (maxCountMatch) {
-          maxCount = parseInt(maxCountMatch[1], 10);
-          continue;
-        }
-        if (arg === "-m" && i + 1 < args.length) {
-          maxCount = parseInt(args[++i], 10);
-          continue;
-        }
+				// Handle -m N or -mN
+				const maxCountMatch = arg.match(/^-m(\d+)$/)
+				if (maxCountMatch) {
+					maxCount = parseInt(maxCountMatch[1], 10)
+					continue
+				}
+				if (arg === '-m' && i + 1 < args.length) {
+					maxCount = parseInt(args[++i], 10)
+					continue
+				}
 
-        // Handle -A, -B, -C with numbers
-        const contextMatch = arg.match(/^-([ABC])(\d+)$/);
-        if (contextMatch) {
-          const num = parseInt(contextMatch[2], 10);
-          if (contextMatch[1] === "A") afterContext = num;
-          else if (contextMatch[1] === "B") beforeContext = num;
-          else if (contextMatch[1] === "C") {
-            beforeContext = num;
-            afterContext = num;
-          }
-          continue;
-        }
+				// Handle -A, -B, -C with numbers
+				const contextMatch = arg.match(/^-([ABC])(\d+)$/)
+				if (contextMatch) {
+					const num = parseInt(contextMatch[2], 10)
+					if (contextMatch[1] === 'A') afterContext = num
+					else if (contextMatch[1] === 'B') beforeContext = num
+					else if (contextMatch[1] === 'C') {
+						beforeContext = num
+						afterContext = num
+					}
+					continue
+				}
 
-        // Handle -A n, -B n, -C n
-        if (
-          (arg === "-A" || arg === "-B" || arg === "-C") &&
-          i + 1 < args.length
-        ) {
-          const num = parseInt(args[++i], 10);
-          if (arg === "-A") afterContext = num;
-          else if (arg === "-B") beforeContext = num;
-          else {
-            beforeContext = num;
-            afterContext = num;
-          }
-          continue;
-        }
+				// Handle -A n, -B n, -C n
+				if (
+					(arg === '-A' || arg === '-B' || arg === '-C') &&
+					i + 1 < args.length
+				) {
+					const num = parseInt(args[++i], 10)
+					if (arg === '-A') afterContext = num
+					else if (arg === '-B') beforeContext = num
+					else {
+						beforeContext = num
+						afterContext = num
+					}
+					continue
+				}
 
-        const flags = arg.startsWith("--") ? [arg] : arg.slice(1).split("");
+				const flags = arg.startsWith('--') ? [arg] : arg.slice(1).split('')
 
-        for (const flag of flags) {
-          if (flag === "i" || flag === "--ignore-case") ignoreCase = true;
-          else if (flag === "n" || flag === "--line-number")
-            showLineNumbers = true;
-          else if (flag === "v" || flag === "--invert-match")
-            invertMatch = true;
-          else if (flag === "c" || flag === "--count") countOnly = true;
-          else if (flag === "l" || flag === "--files-with-matches")
-            filesWithMatches = true;
-          else if (flag === "L" || flag === "--files-without-match")
-            filesWithoutMatch = true;
-          else if (flag === "r" || flag === "R" || flag === "--recursive")
-            recursive = true;
-          else if (flag === "w" || flag === "--word-regexp") wholeWord = true;
-          else if (flag === "x" || flag === "--line-regexp") lineRegexp = true;
-          else if (flag === "E" || flag === "--extended-regexp")
-            extendedRegex = true;
-          else if (flag === "P" || flag === "--perl-regexp") perlRegex = true;
-          else if (flag === "F" || flag === "--fixed-strings")
-            fixedStrings = true;
-          else if (flag === "o" || flag === "--only-matching")
-            onlyMatching = true;
-          else if (flag === "h" || flag === "--no-filename") noFilename = true;
-          else if (flag === "q" || flag === "--quiet" || flag === "--silent")
-            quietMode = true;
-          else if (flag.startsWith("--")) {
-            return unknownOption("grep", flag);
-          } else if (flag.length === 1) {
-            return unknownOption("grep", `-${flag}`);
-          }
-        }
-      } else if (pattern === null) {
-        pattern = arg;
-      } else {
-        files.push(arg);
-      }
-    }
+				for (const flag of flags) {
+					if (flag === 'i' || flag === '--ignore-case') ignoreCase = true
+					else if (flag === 'n' || flag === '--line-number')
+						showLineNumbers = true
+					else if (flag === 'v' || flag === '--invert-match') invertMatch = true
+					else if (flag === 'c' || flag === '--count') countOnly = true
+					else if (flag === 'l' || flag === '--files-with-matches')
+						filesWithMatches = true
+					else if (flag === 'L' || flag === '--files-without-match')
+						filesWithoutMatch = true
+					else if (flag === 'r' || flag === 'R' || flag === '--recursive')
+						recursive = true
+					else if (flag === 'w' || flag === '--word-regexp') wholeWord = true
+					else if (flag === 'x' || flag === '--line-regexp') lineRegexp = true
+					else if (flag === 'E' || flag === '--extended-regexp')
+						extendedRegex = true
+					else if (flag === 'P' || flag === '--perl-regexp') perlRegex = true
+					else if (flag === 'F' || flag === '--fixed-strings')
+						fixedStrings = true
+					else if (flag === 'o' || flag === '--only-matching')
+						onlyMatching = true
+					else if (flag === 'h' || flag === '--no-filename') noFilename = true
+					else if (flag === 'q' || flag === '--quiet' || flag === '--silent')
+						quietMode = true
+					else if (flag.startsWith('--')) {
+						return unknownOption('grep', flag)
+					} else if (flag.length === 1) {
+						return unknownOption('grep', `-${flag}`)
+					}
+				}
+			} else if (pattern === null) {
+				pattern = arg
+			} else {
+				files.push(arg)
+			}
+		}
 
-    if (pattern === null) {
-      return {
-        stdout: "",
-        stderr: "grep: missing pattern\n",
-        exitCode: 2,
-      };
-    }
+		if (pattern === null) {
+			return {
+				stdout: '',
+				stderr: 'grep: missing pattern\n',
+				exitCode: 2,
+			}
+		}
 
-    // Build regex
-    let regexPattern: string;
-    if (fixedStrings) {
-      // -F: escape all regex special characters for literal match
-      regexPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    } else if (extendedRegex || perlRegex) {
-      // -E and -P: use pattern as-is (JavaScript regex is mostly PCRE-compatible)
-      regexPattern = pattern;
-    } else {
-      regexPattern = escapeRegexForBasicGrep(pattern);
-    }
-    if (wholeWord) {
-      regexPattern = `\\b${regexPattern}\\b`;
-    }
-    if (lineRegexp) {
-      regexPattern = `^${regexPattern}$`;
-    }
+		// Build regex
+		let regexPattern: string
+		if (fixedStrings) {
+			// -F: escape all regex special characters for literal match
+			regexPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+		} else if (extendedRegex || perlRegex) {
+			// -E and -P: use pattern as-is (JavaScript regex is mostly PCRE-compatible)
+			regexPattern = pattern
+		} else {
+			regexPattern = escapeRegexForBasicGrep(pattern)
+		}
+		if (wholeWord) {
+			regexPattern = `\\b${regexPattern}\\b`
+		}
+		if (lineRegexp) {
+			regexPattern = `^${regexPattern}$`
+		}
 
-    let regex: RegExp;
-    try {
-      regex = new RegExp(regexPattern, ignoreCase ? "gi" : "g");
-    } catch {
-      return {
-        stdout: "",
-        stderr: `grep: invalid regular expression: ${pattern}\n`,
-        exitCode: 2,
-      };
-    }
+		let regex: RegExp
+		try {
+			regex = new RegExp(regexPattern, ignoreCase ? 'gi' : 'g')
+		} catch {
+			return {
+				stdout: '',
+				stderr: `grep: invalid regular expression: ${pattern}\n`,
+				exitCode: 2,
+			}
+		}
 
-    // If no files and no stdin, read from stdin
-    if (files.length === 0 && ctx.stdin) {
-      const result = grepContent(
-        ctx.stdin,
-        regex,
-        invertMatch,
-        showLineNumbers,
-        countOnly,
-        "",
-        onlyMatching,
-        beforeContext,
-        afterContext,
-        maxCount,
-      );
-      if (quietMode) {
-        return { stdout: "", stderr: "", exitCode: result.matched ? 0 : 1 };
-      }
-      return {
-        stdout: result.output,
-        stderr: "",
-        exitCode: result.matched ? 0 : 1,
-      };
-    }
+		// If no files and no stdin, read from stdin
+		if (files.length === 0 && ctx.stdin) {
+			const result = grepContent(
+				ctx.stdin,
+				regex,
+				invertMatch,
+				showLineNumbers,
+				countOnly,
+				'',
+				onlyMatching,
+				beforeContext,
+				afterContext,
+				maxCount
+			)
+			if (quietMode) {
+				return { stdout: '', stderr: '', exitCode: result.matched ? 0 : 1 }
+			}
+			return {
+				stdout: result.output,
+				stderr: '',
+				exitCode: result.matched ? 0 : 1,
+			}
+		}
 
-    if (files.length === 0) {
-      return {
-        stdout: "",
-        stderr: "grep: no input files\n",
-        exitCode: 2,
-      };
-    }
+		if (files.length === 0) {
+			return {
+				stdout: '',
+				stderr: 'grep: no input files\n',
+				exitCode: 2,
+			}
+		}
 
-    let stdout = "";
-    let stderr = "";
-    let anyMatch = false;
-    let anyError = false;
+		let stdout = ''
+		let stderr = ''
+		let anyMatch = false
+		let anyError = false
 
-    // Collect all files to search (expand globs first)
-    const filesToSearch: string[] = [];
-    for (const file of files) {
-      // Check if this is a glob pattern
-      if (file.includes("*") || file.includes("?") || file.includes("[")) {
-        const expanded = await expandGlobPattern(file, ctx);
-        if (recursive) {
-          for (const f of expanded) {
-            const recursiveExpanded = await expandRecursive(
-              f,
-              ctx,
-              includePatterns,
-              excludePatterns,
-              excludeDirPatterns,
-            );
-            filesToSearch.push(...recursiveExpanded);
-          }
-        } else {
-          filesToSearch.push(...expanded);
-        }
-      } else if (recursive) {
-        const expanded = await expandRecursive(
-          file,
-          ctx,
-          includePatterns,
-          excludePatterns,
-          excludeDirPatterns,
-        );
-        filesToSearch.push(...expanded);
-      } else {
-        filesToSearch.push(file);
-      }
-    }
+		// Collect all files to search (expand globs first)
+		const filesToSearch: string[] = []
+		for (const file of files) {
+			// Check if this is a glob pattern
+			if (file.includes('*') || file.includes('?') || file.includes('[')) {
+				const expanded = await expandGlobPattern(file, ctx)
+				if (recursive) {
+					for (const f of expanded) {
+						const recursiveExpanded = await expandRecursive(
+							f,
+							ctx,
+							includePatterns,
+							excludePatterns,
+							excludeDirPatterns
+						)
+						filesToSearch.push(...recursiveExpanded)
+					}
+				} else {
+					filesToSearch.push(...expanded)
+				}
+			} else if (recursive) {
+				const expanded = await expandRecursive(
+					file,
+					ctx,
+					includePatterns,
+					excludePatterns,
+					excludeDirPatterns
+				)
+				filesToSearch.push(...expanded)
+			} else {
+				filesToSearch.push(file)
+			}
+		}
 
-    // Determine if we should show filename (after glob expansion)
-    const showFilename = (filesToSearch.length > 1 || recursive) && !noFilename;
+		// Determine if we should show filename (after glob expansion)
+		const showFilename = (filesToSearch.length > 1 || recursive) && !noFilename
 
-    for (const file of filesToSearch) {
-      const basename = file.split("/").pop() || file;
+		// Filter files based on include/exclude patterns (for non-recursive case)
+		const filteredFiles = filesToSearch.filter((file) => {
+			const basename = file.split('/').pop() || file
 
-      // Check exclude patterns for non-recursive case
-      if (excludePatterns.length > 0 && !recursive) {
-        if (
-          excludePatterns.some((p) =>
-            matchGlob(basename, p, { stripQuotes: true }),
-          )
-        ) {
-          continue;
-        }
-      }
+			// Check exclude patterns for non-recursive case
+			if (excludePatterns.length > 0 && !recursive) {
+				if (
+					excludePatterns.some((p) =>
+						matchGlob(basename, p, { stripQuotes: true })
+					)
+				) {
+					return false
+				}
+			}
 
-      // Check include patterns for non-recursive case
-      if (includePatterns.length > 0 && !recursive) {
-        if (
-          !includePatterns.some((p) =>
-            matchGlob(basename, p, { stripQuotes: true }),
-          )
-        ) {
-          continue;
-        }
-      }
+			// Check include patterns for non-recursive case
+			if (includePatterns.length > 0 && !recursive) {
+				if (
+					!includePatterns.some((p) =>
+						matchGlob(basename, p, { stripQuotes: true })
+					)
+				) {
+					return false
+				}
+			}
 
-      try {
-        const filePath = ctx.fs.resolvePath(ctx.cwd, file);
-        const stat = await ctx.fs.stat(filePath);
+			return true
+		})
 
-        if (stat.isDirectory) {
-          if (!recursive) {
-            stderr += `grep: ${file}: Is a directory\n`;
-          }
-          continue;
-        }
+		// Process a single file and return its result
+		const processFile = async (
+			file: string
+		): Promise<{
+			file: string
+			output: string
+			matched: boolean
+			isDirectory: boolean
+			error: boolean
+		}> => {
+			try {
+				const filePath = ctx.fs.resolvePath(ctx.cwd, file)
+				const stat = await ctx.fs.stat(filePath)
 
-        const content = await ctx.fs.readFile(filePath);
-        const result = grepContent(
-          content,
-          regex,
-          invertMatch,
-          showLineNumbers,
-          countOnly,
-          showFilename ? file : "",
-          onlyMatching,
-          beforeContext,
-          afterContext,
-          maxCount,
-        );
+				if (stat.isDirectory) {
+					return {
+						file,
+						output: '',
+						matched: false,
+						isDirectory: true,
+						error: false,
+					}
+				}
 
-        if (result.matched) {
-          anyMatch = true;
-          if (quietMode) {
-            // In quiet mode, exit immediately on first match
-            return { stdout: "", stderr: "", exitCode: 0 };
-          }
-          if (filesWithMatches) {
-            stdout += `${file}\n`;
-          } else if (!filesWithoutMatch) {
-            stdout += result.output;
-          }
-        } else {
-          // No match in this file
-          if (filesWithoutMatch) {
-            stdout += `${file}\n`;
-          } else if (countOnly && !filesWithMatches) {
-            stdout += result.output;
-          }
-        }
-      } catch {
-        stderr += `grep: ${file}: No such file or directory\n`;
-        anyError = true;
-      }
-    }
+				const content = await ctx.fs.readFile(filePath)
+				const result = grepContent(
+					content,
+					regex,
+					invertMatch,
+					showLineNumbers,
+					countOnly,
+					showFilename ? file : '',
+					onlyMatching,
+					beforeContext,
+					afterContext,
+					maxCount
+				)
 
-    // Exit codes: 0 = match found (or files without match for -L), 1 = no match, 2 = error
-    // For -L, success means we found files without matches (stdout has content)
-    let exitCode: number;
-    if (anyError) {
-      exitCode = 2;
-    } else if (filesWithoutMatch) {
-      exitCode = stdout.length > 0 ? 0 : 1;
-    } else {
-      exitCode = anyMatch ? 0 : 1;
-    }
+				return {
+					file,
+					output: result.output,
+					matched: result.matched,
+					isDirectory: false,
+					error: false,
+				}
+			} catch {
+				return {
+					file,
+					output: '',
+					matched: false,
+					isDirectory: false,
+					error: true,
+				}
+			}
+		}
 
-    if (quietMode) {
-      return { stdout: "", stderr: "", exitCode };
-    }
+		// Process all files in parallel batches for performance
+		const BATCH_SIZE = 100
+		for (let i = 0; i < filteredFiles.length; i += BATCH_SIZE) {
+			const batch = filteredFiles.slice(i, i + BATCH_SIZE)
+			const results = await Promise.all(batch.map(processFile))
 
-    return {
-      stdout,
-      stderr,
-      exitCode,
-    };
-  },
-};
+			for (const result of results) {
+				if (result.isDirectory) {
+					if (!recursive) {
+						stderr += `grep: ${result.file}: Is a directory\n`
+					}
+					continue
+				}
+
+				if (result.error) {
+					stderr += `grep: ${result.file}: No such file or directory\n`
+					anyError = true
+					continue
+				}
+
+				if (result.matched) {
+					anyMatch = true
+					if (quietMode) {
+						// In quiet mode, exit immediately on first match
+						return { stdout: '', stderr: '', exitCode: 0 }
+					}
+					if (filesWithMatches) {
+						stdout += `${result.file}\n`
+					} else if (!filesWithoutMatch) {
+						stdout += result.output
+					}
+				} else {
+					// No match in this file
+					if (filesWithoutMatch) {
+						stdout += `${result.file}\n`
+					} else if (countOnly && !filesWithMatches) {
+						stdout += result.output
+					}
+				}
+			}
+		}
+
+		// Exit codes: 0 = match found (or files without match for -L), 1 = no match, 2 = error
+		// For -L, success means we found files without matches (stdout has content)
+		let exitCode: number
+		if (anyError) {
+			exitCode = 2
+		} else if (filesWithoutMatch) {
+			exitCode = stdout.length > 0 ? 0 : 1
+		} else {
+			exitCode = anyMatch ? 0 : 1
+		}
+
+		if (quietMode) {
+			return { stdout: '', stderr: '', exitCode }
+		}
+
+		return {
+			stdout,
+			stderr,
+			exitCode,
+		}
+	},
+}
 
 function escapeRegexForBasicGrep(str: string): string {
-  // Basic grep (BRE) uses different escaping than JavaScript regex
-  // In BRE: \| is alternation, \( \) are groups, \{ \} are quantifiers
-  // We need to convert BRE to JavaScript regex
+	// Basic grep (BRE) uses different escaping than JavaScript regex
+	// In BRE: \| is alternation, \( \) are groups, \{ \} are quantifiers
+	// We need to convert BRE to JavaScript regex
 
-  let result = "";
-  let i = 0;
+	let result = ''
+	let i = 0
 
-  while (i < str.length) {
-    const char = str[i];
+	while (i < str.length) {
+		const char = str[i]
 
-    if (char === "\\" && i + 1 < str.length) {
-      const nextChar = str[i + 1];
-      // BRE: \| becomes | (alternation)
-      // BRE: \( \) become ( ) (grouping)
-      // BRE: \{ \} become { } (quantifiers) - but we'll treat as literal for simplicity
-      if (nextChar === "|" || nextChar === "(" || nextChar === ")") {
-        result += nextChar;
-        i += 2;
-        continue;
-      } else if (nextChar === "{" || nextChar === "}") {
-        // Keep as escaped for now (literal)
-        result += `\\${nextChar}`;
-        i += 2;
-        continue;
-      }
-    }
+		if (char === '\\' && i + 1 < str.length) {
+			const nextChar = str[i + 1]
+			// BRE: \| becomes | (alternation)
+			// BRE: \( \) become ( ) (grouping)
+			// BRE: \{ \} become { } (quantifiers) - but we'll treat as literal for simplicity
+			if (nextChar === '|' || nextChar === '(' || nextChar === ')') {
+				result += nextChar
+				i += 2
+				continue
+			} else if (nextChar === '{' || nextChar === '}') {
+				// Keep as escaped for now (literal)
+				result += `\\${nextChar}`
+				i += 2
+				continue
+			}
+		}
 
-    // Escape characters that are special in JavaScript regex but not in BRE
-    if (
-      char === "+" ||
-      char === "?" ||
-      char === "|" ||
-      char === "(" ||
-      char === ")" ||
-      char === "{" ||
-      char === "}"
-    ) {
-      result += `\\${char}`;
-    } else {
-      result += char;
-    }
-    i++;
-  }
+		// Escape characters that are special in JavaScript regex but not in BRE
+		if (
+			char === '+' ||
+			char === '?' ||
+			char === '|' ||
+			char === '(' ||
+			char === ')' ||
+			char === '{' ||
+			char === '}'
+		) {
+			result += `\\${char}`
+		} else {
+			result += char
+		}
+		i++
+	}
 
-  return result;
+	return result
 }
 
 function grepContent(
-  content: string,
-  regex: RegExp,
-  invertMatch: boolean,
-  showLineNumbers: boolean,
-  countOnly: boolean,
-  filename: string,
-  onlyMatching: boolean = false,
-  beforeContext: number = 0,
-  afterContext: number = 0,
-  maxCount: number = 0, // 0 means unlimited
+	content: string,
+	regex: RegExp,
+	invertMatch: boolean,
+	showLineNumbers: boolean,
+	countOnly: boolean,
+	filename: string,
+	onlyMatching: boolean = false,
+	beforeContext: number = 0,
+	afterContext: number = 0,
+	maxCount: number = 0 // 0 means unlimited
 ): { output: string; matched: boolean } {
-  const lines = content.split("\n");
-  const lineCount = lines.length;
-  // Handle trailing empty line from split if content ended with newline
-  const lastIdx =
-    lineCount > 0 && lines[lineCount - 1] === "" ? lineCount - 1 : lineCount;
+	const lines = content.split('\n')
+	const lineCount = lines.length
+	// Handle trailing empty line from split if content ended with newline
+	const lastIdx =
+		lineCount > 0 && lines[lineCount - 1] === '' ? lineCount - 1 : lineCount
 
-  // Fast path: count only mode
-  if (countOnly) {
-    let matchCount = 0;
-    for (let i = 0; i < lastIdx; i++) {
-      regex.lastIndex = 0;
-      if (regex.test(lines[i]) !== invertMatch) {
-        matchCount++;
-      }
-    }
-    const countStr = filename
-      ? `${filename}:${matchCount}`
-      : String(matchCount);
-    return { output: `${countStr}\n`, matched: matchCount > 0 };
-  }
+	// Fast path: count only mode
+	if (countOnly) {
+		let matchCount = 0
+		for (let i = 0; i < lastIdx; i++) {
+			regex.lastIndex = 0
+			if (regex.test(lines[i]) !== invertMatch) {
+				matchCount++
+			}
+		}
+		const countStr = filename ? `${filename}:${matchCount}` : String(matchCount)
+		return { output: `${countStr}\n`, matched: matchCount > 0 }
+	}
 
-  // Fast path: no context needed (most common case)
-  if (beforeContext === 0 && afterContext === 0) {
-    const outputLines: string[] = [];
-    let hasMatch = false;
-    let matchCount = 0;
+	// Fast path: no context needed (most common case)
+	if (beforeContext === 0 && afterContext === 0) {
+		const outputLines: string[] = []
+		let hasMatch = false
+		let matchCount = 0
 
-    for (let i = 0; i < lastIdx; i++) {
-      // Check if we've reached maxCount
-      if (maxCount > 0 && matchCount >= maxCount) break;
+		for (let i = 0; i < lastIdx; i++) {
+			// Check if we've reached maxCount
+			if (maxCount > 0 && matchCount >= maxCount) break
 
-      const line = lines[i];
-      regex.lastIndex = 0;
-      const matches = regex.test(line);
+			const line = lines[i]
+			regex.lastIndex = 0
+			const matches = regex.test(line)
 
-      if (matches !== invertMatch) {
-        hasMatch = true;
-        matchCount++;
-        if (onlyMatching) {
-          regex.lastIndex = 0;
-          for (
-            let match = regex.exec(line);
-            match !== null;
-            match = regex.exec(line)
-          ) {
-            outputLines.push(filename ? `${filename}:${match[0]}` : match[0]);
-            if (match[0].length === 0) regex.lastIndex++;
-          }
-        } else if (showLineNumbers) {
-          outputLines.push(
-            filename ? `${filename}:${i + 1}:${line}` : `${i + 1}:${line}`,
-          );
-        } else {
-          outputLines.push(filename ? `${filename}:${line}` : line);
-        }
-      }
-    }
+			if (matches !== invertMatch) {
+				hasMatch = true
+				matchCount++
+				if (onlyMatching) {
+					regex.lastIndex = 0
+					for (
+						let match = regex.exec(line);
+						match !== null;
+						match = regex.exec(line)
+					) {
+						outputLines.push(filename ? `${filename}:${match[0]}` : match[0])
+						if (match[0].length === 0) regex.lastIndex++
+					}
+				} else if (showLineNumbers) {
+					outputLines.push(
+						filename ? `${filename}:${i + 1}:${line}` : `${i + 1}:${line}`
+					)
+				} else {
+					outputLines.push(filename ? `${filename}:${line}` : line)
+				}
+			}
+		}
 
-    return {
-      output: outputLines.length > 0 ? `${outputLines.join("\n")}\n` : "",
-      matched: hasMatch,
-    };
-  }
+		return {
+			output: outputLines.length > 0 ? `${outputLines.join('\n')}\n` : '',
+			matched: hasMatch,
+		}
+	}
 
-  // Slow path: context lines needed
-  const outputLines: string[] = [];
-  let matchCount = 0;
-  const printedLines = new Set<number>();
+	// Slow path: context lines needed
+	const outputLines: string[] = []
+	let matchCount = 0
+	const printedLines = new Set<number>()
 
-  // First pass: find all matching lines (respecting maxCount)
-  const matchingLineNumbers: number[] = [];
-  for (let i = 0; i < lastIdx; i++) {
-    // Check if we've reached maxCount
-    if (maxCount > 0 && matchCount >= maxCount) break;
-    regex.lastIndex = 0;
-    if (regex.test(lines[i]) !== invertMatch) {
-      matchingLineNumbers.push(i);
-      matchCount++;
-    }
-  }
+	// First pass: find all matching lines (respecting maxCount)
+	const matchingLineNumbers: number[] = []
+	for (let i = 0; i < lastIdx; i++) {
+		// Check if we've reached maxCount
+		if (maxCount > 0 && matchCount >= maxCount) break
+		regex.lastIndex = 0
+		if (regex.test(lines[i]) !== invertMatch) {
+			matchingLineNumbers.push(i)
+			matchCount++
+		}
+	}
 
-  // Second pass: output with context
-  for (const lineNum of matchingLineNumbers) {
-    // Before context
-    for (let i = Math.max(0, lineNum - beforeContext); i < lineNum; i++) {
-      if (!printedLines.has(i)) {
-        printedLines.add(i);
-        let outputLine = lines[i];
-        if (showLineNumbers) outputLine = `${i + 1}-${outputLine}`;
-        if (filename) outputLine = `${filename}-${outputLine}`;
-        outputLines.push(outputLine);
-      }
-    }
+	// Second pass: output with context
+	for (const lineNum of matchingLineNumbers) {
+		// Before context
+		for (let i = Math.max(0, lineNum - beforeContext); i < lineNum; i++) {
+			if (!printedLines.has(i)) {
+				printedLines.add(i)
+				let outputLine = lines[i]
+				if (showLineNumbers) outputLine = `${i + 1}-${outputLine}`
+				if (filename) outputLine = `${filename}-${outputLine}`
+				outputLines.push(outputLine)
+			}
+		}
 
-    // The matching line
-    if (!printedLines.has(lineNum)) {
-      printedLines.add(lineNum);
-      const line = lines[lineNum];
+		// The matching line
+		if (!printedLines.has(lineNum)) {
+			printedLines.add(lineNum)
+			const line = lines[lineNum]
 
-      if (onlyMatching) {
-        regex.lastIndex = 0;
-        for (
-          let match = regex.exec(line);
-          match !== null;
-          match = regex.exec(line)
-        ) {
-          outputLines.push(filename ? `${filename}:${match[0]}` : match[0]);
-          if (match[0].length === 0) regex.lastIndex++;
-        }
-      } else {
-        let outputLine = line;
-        if (showLineNumbers) outputLine = `${lineNum + 1}:${outputLine}`;
-        if (filename) outputLine = `${filename}:${outputLine}`;
-        outputLines.push(outputLine);
-      }
-    }
+			if (onlyMatching) {
+				regex.lastIndex = 0
+				for (
+					let match = regex.exec(line);
+					match !== null;
+					match = regex.exec(line)
+				) {
+					outputLines.push(filename ? `${filename}:${match[0]}` : match[0])
+					if (match[0].length === 0) regex.lastIndex++
+				}
+			} else {
+				let outputLine = line
+				if (showLineNumbers) outputLine = `${lineNum + 1}:${outputLine}`
+				if (filename) outputLine = `${filename}:${outputLine}`
+				outputLines.push(outputLine)
+			}
+		}
 
-    // After context
-    const maxAfter = Math.min(lastIdx - 1, lineNum + afterContext);
-    for (let i = lineNum + 1; i <= maxAfter; i++) {
-      if (!printedLines.has(i)) {
-        printedLines.add(i);
-        let outputLine = lines[i];
-        if (showLineNumbers) outputLine = `${i + 1}-${outputLine}`;
-        if (filename) outputLine = `${filename}-${outputLine}`;
-        outputLines.push(outputLine);
-      }
-    }
-  }
+		// After context
+		const maxAfter = Math.min(lastIdx - 1, lineNum + afterContext)
+		for (let i = lineNum + 1; i <= maxAfter; i++) {
+			if (!printedLines.has(i)) {
+				printedLines.add(i)
+				let outputLine = lines[i]
+				if (showLineNumbers) outputLine = `${i + 1}-${outputLine}`
+				if (filename) outputLine = `${filename}-${outputLine}`
+				outputLines.push(outputLine)
+			}
+		}
+	}
 
-  return {
-    output: outputLines.length > 0 ? `${outputLines.join("\n")}\n` : "",
-    matched: matchCount > 0,
-  };
+	return {
+		output: outputLines.length > 0 ? `${outputLines.join('\n')}\n` : '',
+		matched: matchCount > 0,
+	}
 }
 
 async function expandRecursive(
-  path: string,
-  ctx: CommandContext,
-  includePatterns: string[] = [],
-  excludePatterns: string[] = [],
-  excludeDirPatterns: string[] = [],
+	path: string,
+	ctx: CommandContext,
+	includePatterns: string[] = [],
+	excludePatterns: string[] = [],
+	excludeDirPatterns: string[] = []
 ): Promise<string[]> {
-  const fullPath = ctx.fs.resolvePath(ctx.cwd, path);
-  const result: string[] = [];
+	const fullPath = ctx.fs.resolvePath(ctx.cwd, path)
+	const result: string[] = []
 
-  try {
-    const stat = await ctx.fs.stat(fullPath);
+	try {
+		const stat = await ctx.fs.stat(fullPath)
 
-    if (!stat.isDirectory) {
-      const basename = path.split("/").pop() || path;
+		if (!stat.isDirectory) {
+			const basename = path.split('/').pop() || path
 
-      // Check exclude patterns - skip if file matches any exclude pattern
-      if (excludePatterns.length > 0) {
-        if (
-          excludePatterns.some((p) =>
-            matchGlob(basename, p, { stripQuotes: true }),
-          )
-        ) {
-          return [];
-        }
-      }
+			// Check exclude patterns - skip if file matches any exclude pattern
+			if (excludePatterns.length > 0) {
+				if (
+					excludePatterns.some((p) =>
+						matchGlob(basename, p, { stripQuotes: true })
+					)
+				) {
+					return []
+				}
+			}
 
-      // Check include patterns - file must match at least one pattern (if any are specified)
-      if (includePatterns.length > 0) {
-        if (
-          !includePatterns.some((p) =>
-            matchGlob(basename, p, { stripQuotes: true }),
-          )
-        ) {
-          return [];
-        }
-      }
-      return [path];
-    }
+			// Check include patterns - file must match at least one pattern (if any are specified)
+			if (includePatterns.length > 0) {
+				if (
+					!includePatterns.some((p) =>
+						matchGlob(basename, p, { stripQuotes: true })
+					)
+				) {
+					return []
+				}
+			}
+			return [path]
+		}
 
-    // Check if directory should be excluded
-    const dirName = path.split("/").pop() || path;
-    if (excludeDirPatterns.length > 0) {
-      if (
-        excludeDirPatterns.some((p) =>
-          matchGlob(dirName, p, { stripQuotes: true }),
-        )
-      ) {
-        return [];
-      }
-    }
+		// Check if directory should be excluded
+		const dirName = path.split('/').pop() || path
+		if (excludeDirPatterns.length > 0) {
+			if (
+				excludeDirPatterns.some((p) =>
+					matchGlob(dirName, p, { stripQuotes: true })
+				)
+			) {
+				return []
+			}
+		}
 
-    const entries = await ctx.fs.readdir(fullPath);
-    for (const entry of entries) {
-      if (entry.startsWith(".")) continue; // Skip hidden files
+		const entries = await ctx.fs.readdir(fullPath)
+		const visibleEntries = entries.filter((e) => !e.startsWith('.'))
 
-      const entryPath = path === "." ? entry : `${path}/${entry}`;
-      const expanded = await expandRecursive(
-        entryPath,
-        ctx,
-        includePatterns,
-        excludePatterns,
-        excludeDirPatterns,
-      );
-      result.push(...expanded);
-    }
-  } catch {
-    // Ignore errors
-  }
+		// Parallelize directory traversal for performance
+		const expansions = await Promise.all(
+			visibleEntries.map((entry) => {
+				const entryPath = path === '.' ? entry : `${path}/${entry}`
+				return expandRecursive(
+					entryPath,
+					ctx,
+					includePatterns,
+					excludePatterns,
+					excludeDirPatterns
+				)
+			})
+		)
+		for (const expanded of expansions) {
+			result.push(...expanded)
+		}
+	} catch {
+		// Ignore errors
+	}
 
-  return result;
+	return result
 }
 
 async function expandGlobPattern(
-  pattern: string,
-  ctx: CommandContext,
+	pattern: string,
+	ctx: CommandContext
 ): Promise<string[]> {
-  const result: string[] = [];
+	const result: string[] = []
 
-  // Find the directory part and the glob part
-  const lastSlash = pattern.lastIndexOf("/");
-  let dirPath: string;
-  let globPart: string;
+	// Find the directory part and the glob part
+	const lastSlash = pattern.lastIndexOf('/')
+	let dirPath: string
+	let globPart: string
 
-  if (lastSlash === -1) {
-    dirPath = ctx.cwd;
-    globPart = pattern;
-  } else {
-    dirPath = pattern.slice(0, lastSlash) || "/";
-    globPart = pattern.slice(lastSlash + 1);
-  }
+	if (lastSlash === -1) {
+		dirPath = ctx.cwd
+		globPart = pattern
+	} else {
+		dirPath = pattern.slice(0, lastSlash) || '/'
+		globPart = pattern.slice(lastSlash + 1)
+	}
 
-  // Handle ** (recursive glob)
-  if (pattern.includes("**")) {
-    // Split pattern at **
-    const parts = pattern.split("**");
-    const baseDir = parts[0].replace(/\/$/, "") || ".";
-    const afterGlob = parts[1] || "";
+	// Handle ** (recursive glob)
+	if (pattern.includes('**')) {
+		// Split pattern at **
+		const parts = pattern.split('**')
+		const baseDir = parts[0].replace(/\/$/, '') || '.'
+		const afterGlob = parts[1] || ''
 
-    await expandRecursiveGlob(baseDir, afterGlob, ctx, result);
-    return result;
-  }
+		await expandRecursiveGlob(baseDir, afterGlob, ctx, result)
+		return result
+	}
 
-  // Resolve the directory path
-  const fullDirPath = ctx.fs.resolvePath(ctx.cwd, dirPath);
+	// Resolve the directory path
+	const fullDirPath = ctx.fs.resolvePath(ctx.cwd, dirPath)
 
-  try {
-    const entries = await ctx.fs.readdir(fullDirPath);
+	try {
+		const entries = await ctx.fs.readdir(fullDirPath)
 
-    for (const entry of entries) {
-      if (matchGlob(entry, globPart, { stripQuotes: true })) {
-        const fullPath = lastSlash === -1 ? entry : `${dirPath}/${entry}`;
-        result.push(fullPath);
-      }
-    }
-  } catch {
-    // Directory doesn't exist - return empty
-  }
+		for (const entry of entries) {
+			if (matchGlob(entry, globPart, { stripQuotes: true })) {
+				const fullPath = lastSlash === -1 ? entry : `${dirPath}/${entry}`
+				result.push(fullPath)
+			}
+		}
+	} catch {
+		// Directory doesn't exist - return empty
+	}
 
-  return result.sort();
+	return result.sort()
 }
 
 async function expandRecursiveGlob(
-  baseDir: string,
-  afterGlob: string,
-  ctx: CommandContext,
-  result: string[],
+	baseDir: string,
+	afterGlob: string,
+	ctx: CommandContext,
+	result: string[]
 ): Promise<void> {
-  const fullBasePath = ctx.fs.resolvePath(ctx.cwd, baseDir);
+	const fullBasePath = ctx.fs.resolvePath(ctx.cwd, baseDir)
 
-  try {
-    const stat = await ctx.fs.stat(fullBasePath);
+	try {
+		const stat = await ctx.fs.stat(fullBasePath)
 
-    if (!stat.isDirectory) {
-      // Check if the file matches afterGlob pattern
-      const filename = baseDir.split("/").pop() || "";
-      if (afterGlob) {
-        const pattern = afterGlob.replace(/^\//, "");
-        if (matchGlob(filename, pattern, { stripQuotes: true })) {
-          result.push(baseDir);
-        }
-      }
-      return;
-    }
+		if (!stat.isDirectory) {
+			// Check if the file matches afterGlob pattern
+			const filename = baseDir.split('/').pop() || ''
+			if (afterGlob) {
+				const pattern = afterGlob.replace(/^\//, '')
+				if (matchGlob(filename, pattern, { stripQuotes: true })) {
+					result.push(baseDir)
+				}
+			}
+			return
+		}
 
-    // Check files in current directory
-    const entries = await ctx.fs.readdir(fullBasePath);
-    for (const entry of entries) {
-      const entryPath = baseDir === "." ? entry : `${baseDir}/${entry}`;
-      const fullEntryPath = ctx.fs.resolvePath(ctx.cwd, entryPath);
-      const entryStat = await ctx.fs.stat(fullEntryPath);
+		// Check files in current directory
+		const entries = await ctx.fs.readdir(fullBasePath)
 
-      if (entryStat.isDirectory) {
-        // Recurse into directory
-        await expandRecursiveGlob(entryPath, afterGlob, ctx, result);
-      } else if (afterGlob) {
-        // Check if file matches afterGlob pattern
-        const pattern = afterGlob.replace(/^\//, "");
-        if (matchGlob(entry, pattern, { stripQuotes: true })) {
-          result.push(entryPath);
-        }
-      }
-    }
-  } catch {
-    // Ignore errors
-  }
+		// First, stat all entries in parallel
+		const entryInfos = await Promise.all(
+			entries.map(async (entry) => {
+				const entryPath = baseDir === '.' ? entry : `${baseDir}/${entry}`
+				const fullEntryPath = ctx.fs.resolvePath(ctx.cwd, entryPath)
+				try {
+					const entryStat = await ctx.fs.stat(fullEntryPath)
+					return { entry, entryPath, isDirectory: entryStat.isDirectory }
+				} catch {
+					return null
+				}
+			})
+		)
+
+		const validEntries = entryInfos.filter(
+			(e): e is NonNullable<typeof e> => e !== null
+		)
+		const directories = validEntries.filter((e) => e.isDirectory)
+		const files = validEntries.filter((e) => !e.isDirectory)
+
+		// Process files immediately
+		if (afterGlob) {
+			const pattern = afterGlob.replace(/^\//, '')
+			for (const { entry, entryPath } of files) {
+				if (matchGlob(entry, pattern, { stripQuotes: true })) {
+					result.push(entryPath)
+				}
+			}
+		}
+
+		// Recurse into directories in parallel
+		await Promise.all(
+			directories.map(({ entryPath }) =>
+				expandRecursiveGlob(entryPath, afterGlob, ctx, result)
+			)
+		)
+	} catch {
+		// Ignore errors
+	}
 }
 
 // fgrep is equivalent to grep -F
 export const fgrepCommand: Command = {
-  name: "fgrep",
+	name: 'fgrep',
 
-  async execute(args: string[], ctx: CommandContext): Promise<ExecResult> {
-    // Insert -F at the beginning of args
-    return grepCommand.execute(["-F", ...args], ctx);
-  },
-};
+	async execute(args: string[], ctx: CommandContext): Promise<ExecResult> {
+		// Insert -F at the beginning of args
+		return grepCommand.execute(['-F', ...args], ctx)
+	},
+}
 
 // egrep is equivalent to grep -E
 export const egrepCommand: Command = {
-  name: "egrep",
+	name: 'egrep',
 
-  async execute(args: string[], ctx: CommandContext): Promise<ExecResult> {
-    // Insert -E at the beginning of args
-    return grepCommand.execute(["-E", ...args], ctx);
-  },
-};
+	async execute(args: string[], ctx: CommandContext): Promise<ExecResult> {
+		// Insert -E at the beginning of args
+		return grepCommand.execute(['-E', ...args], ctx)
+	},
+}
