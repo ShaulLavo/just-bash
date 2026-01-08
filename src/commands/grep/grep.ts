@@ -1,6 +1,9 @@
 import type { Command, CommandContext, ExecResult } from '../../types.js'
 import { matchGlob } from '../../utils/glob.js'
 import { hasHelpFlag, showHelp, unknownOption } from '../help.js'
+import { grepBufferLiteral, type FastGrepOptions } from './fast-grep.js'
+
+const textEncoder = new TextEncoder()
 
 const grepHelp = {
 	name: 'grep',
@@ -215,20 +218,52 @@ export const grepCommand: Command = {
 			}
 		}
 
+		const fastLiteralEnabled = canUseFastLiteral({
+			pattern,
+			fixedStrings,
+			ignoreCase,
+			wholeWord,
+			lineRegexp,
+			onlyMatching,
+			beforeContext,
+			afterContext,
+		})
+		const fastLiteralOptions = fastLiteralEnabled
+			? {
+					pattern,
+					regex,
+					isLiteral: true,
+					ignoreCase,
+					invertMatch,
+					wholeWord,
+					lineRegexp,
+					maxCount,
+					onlyMatching,
+				}
+			: null
+
 		// If no files and no stdin, read from stdin
 		if (files.length === 0 && ctx.stdin) {
-			const result = grepContent(
-				ctx.stdin,
-				regex,
-				invertMatch,
-				showLineNumbers,
-				countOnly,
-				'',
-				onlyMatching,
-				beforeContext,
-				afterContext,
-				maxCount
-			)
+			const result = fastLiteralOptions
+				? grepBufferLiteralContent(
+						textEncoder.encode(ctx.stdin),
+						fastLiteralOptions,
+						showLineNumbers,
+						countOnly,
+						''
+					)
+				: grepContent(
+						ctx.stdin,
+						regex,
+						invertMatch,
+						showLineNumbers,
+						countOnly,
+						'',
+						onlyMatching,
+						beforeContext,
+						afterContext,
+						maxCount
+					)
 			if (quietMode) {
 				return { stdout: '', stderr: '', exitCode: result.matched ? 0 : 1 }
 			}
@@ -342,19 +377,27 @@ export const grepCommand: Command = {
 					}
 				}
 
-				const content = await ctx.fs.readFile(filePath)
-				const result = grepContent(
-					content,
-					regex,
-					invertMatch,
-					showLineNumbers,
-					countOnly,
-					showFilename ? file : '',
-					onlyMatching,
-					beforeContext,
-					afterContext,
-					maxCount
-				)
+				const filenamePrefix = showFilename ? file : ''
+				const result = fastLiteralOptions
+					? grepBufferLiteralContent(
+							await ctx.fs.readFileBuffer(filePath),
+							fastLiteralOptions,
+							showLineNumbers,
+							countOnly,
+							filenamePrefix
+						)
+					: grepContent(
+							await ctx.fs.readFile(filePath),
+							regex,
+							invertMatch,
+							showLineNumbers,
+							countOnly,
+							filenamePrefix,
+							onlyMatching,
+							beforeContext,
+							afterContext,
+							maxCount
+						)
 
 				return {
 					file,
@@ -437,6 +480,57 @@ export const grepCommand: Command = {
 			exitCode,
 		}
 	},
+}
+
+function canUseFastLiteral(options: {
+	pattern: string
+	fixedStrings: boolean
+	ignoreCase: boolean
+	wholeWord: boolean
+	lineRegexp: boolean
+	onlyMatching: boolean
+	beforeContext: number
+	afterContext: number
+}): boolean {
+	if (!options.fixedStrings) return false
+	if (options.pattern.length === 0) return false
+	if (options.pattern.includes('\n')) return false
+	if (options.ignoreCase || options.wholeWord || options.lineRegexp) return false
+	if (options.onlyMatching) return false
+	if (options.beforeContext !== 0 || options.afterContext !== 0) return false
+	return true
+}
+
+function grepBufferLiteralContent(
+	buffer: Uint8Array,
+	options: FastGrepOptions,
+	showLineNumbers: boolean,
+	countOnly: boolean,
+	filename: string
+): { output: string; matched: boolean } {
+	const matches = grepBufferLiteral(buffer, options)
+
+	if (countOnly) {
+		const countStr = filename
+			? `${filename}:${matches.length}`
+			: String(matches.length)
+		return { output: `${countStr}\n`, matched: matches.length > 0 }
+	}
+
+	if (matches.length === 0) {
+		return { output: '', matched: false }
+	}
+
+	const outputLines = matches.map((match) => {
+		if (showLineNumbers) {
+			return filename
+				? `${filename}:${match.lineNumber}:${match.content}`
+				: `${match.lineNumber}:${match.content}`
+		}
+		return filename ? `${filename}:${match.content}` : match.content
+	})
+
+	return { output: `${outputLines.join('\n')}\n`, matched: true }
 }
 
 function escapeRegexForBasicGrep(str: string): string {
