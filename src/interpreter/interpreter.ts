@@ -863,7 +863,7 @@ export class Interpreter {
       limits: this.ctx.limits,
       exec: this.ctx.execFn,
       fetch: this.ctx.fetch,
-      getRegisteredCommands: () => Array.from(this.ctx.commands.keys()),
+      getRegisteredCommands: () => Array.from(this.ctx.commands.values()),
       sleep: this.ctx.sleep,
     };
 
