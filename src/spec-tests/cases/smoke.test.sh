@@ -50,7 +50,6 @@ EOF
 ## stdout-json: "\"two\none\n"
 
 #### here doc without var
-## SKIP: Here-doc edge cases not implemented
 tac <<"EOF"
 $v
 "two

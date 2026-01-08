@@ -2,240 +2,365 @@
 
 This document describes bash features that are intentionally not implemented in bash-env. Tests for these features are marked with `## SKIP:` in the spec test files.
 
-## Shell Options
+---
 
-### extglob (51 tests)
-Extended glob patterns like `@(foo|bar)`, `+(pattern)`, `?(pattern)`, `!(pattern)` are not supported.
+## AI Agent Priority List
 
-### noglob / set -f (7 tests)
-The `set -f` option to disable pathname expansion is not implemented.
+Features prioritized for AI agent use cases. These are the most impactful gaps for agents running scripts in sandboxed environments.
 
-### noclobber / set -C (6 tests)
-The `set -C` option to prevent overwriting files with `>` is not implemented.
+### Critical (Implement First)
 
-### noexec / set -n (1 test)
-The `set -n` option to parse but not execute commands is not implemented.
+| Feature | Tests | AI Agent Use Case | Status |
+|---------|-------|-------------------|--------|
+| **PIPESTATUS** | 7 | Agents chain commands (`cmd1 | cmd2 | cmd3`) and need to know which stage failed | ✅ Done |
+| **read -a array** | ~3 | Parse output into arrays: `read -a parts <<< "$line"` | ✅ Done |
+| **mapfile/readarray** | 13 | Process multi-line output into arrays: `mapfile -t lines < <(find ...)` | ✅ Done |
+| **errexit in compound commands** | 9 | Scripts with `set -e` must fail properly in `{ }` blocks and pipelines | Pending |
 
-### globskipdots (3 tests)
-The `shopt -s globskipdots` option is not implemented.
+### High (Implement Second)
 
-### POSIX mode (9 tests)
-`set -o posix` for strict POSIX compliance is not implemented.
+| Feature | Tests | AI Agent Use Case | Status |
+|---------|-------|-------------------|--------|
+| **read -d delim** | ~3 | Parse NUL-separated output from `find -print0`, handle CSV data | ✅ Done |
+| **read -n** | ~2 | Read fixed-length fields | ✅ Done |
+| **printf %q** | 14 | Safely quote strings when generating shell commands programmatically | ✅ Done |
+| **set -f (noglob)** | 2 | Disable glob expansion when handling untrusted input safely | ✅ Done |
+| **read -N** | ~2 | Read exact N chars ignoring delimiters | Pending |
 
-## Builtins
+### Medium (Nice to Have)
 
-### read options (24 tests)
-Advanced `read` options are not implemented:
-- `-n N` / `-N N` - read N characters
-- `-d delim` - custom delimiter
-- `-t timeout` - timeout
-- `-u fd` - read from file descriptor
-- `-s` - silent mode
-- `-e` - use readline
-- `-i text` - default text
-- `-a array` - read into array
-- `-p prompt` - prompt string
+| Feature | Tests | AI Agent Use Case | Status |
+|---------|-------|-------------------|--------|
+| **IFS edge cases** | ~8 | Complex text parsing scenarios | Pending |
+| **Here-doc edge cases** | ~5 | Multi-line string handling in scripts | Partial ✅ |
+| **Right brace in default** | 46 | Complex parameter expansions | Pending |
 
-### mapfile/readarray (13 tests)
-The `mapfile` and `readarray` builtins for reading lines into an array are not implemented.
+### Low Priority for Agents
 
-### hash (3 tests)
-The `hash` builtin for managing the command hash table is not implemented.
+| Feature | Tests | Reason |
+|---------|-------|--------|
+| **read -t timeout** | ~2 | Less relevant in non-interactive sandbox |
+| **read -s silent** | ~2 | No TTY in sandboxed environment |
+| **extglob** | 50 | Basic globs usually sufficient |
+| **hash** | 3 | Command caching irrelevant in sandbox |
+| **history** | 29 | Interactive feature, out of scope |
 
-### history (29 tests)
-The `history` builtin and history expansion are not implemented.
+---
 
-## Variables
+## Recently Implemented
 
-### PIPESTATUS (11 tests)
-The `PIPESTATUS` array containing exit statuses of pipeline commands is not implemented.
+The following features were recently added and are now working:
 
-### $LINENO tracking (14 tests)
-`$LINENO` is partially implemented but not tracked accurately in:
-- Redirects
+### $LINENO Tracking ✅
+The `$LINENO` variable now correctly tracks the current line number during script execution, including in:
+- Simple commands
+- Function bodies
 - Loops (for, while)
 - Case statements
-- Assignments
-- Conditional/arithmetic contexts
 
-### $_ special variable (3 tests)
-The `$_` variable with declare/colon builtin interactions has edge cases not implemented.
+### Word Splitting with Mixed Quoted/Unquoted Parts ✅
+Word splitting now correctly handles:
+- `$a"$b"` - unquoted followed by quoted parts
+- `"$@"` with adjacent text (e.g., `"-$@-"` produces `['-arg1', 'arg2', 'arg3-']`)
+- `"$*"` vs `"$@"` semantics (different behavior with empty params)
+- Unquoted `$@`/`$*` going through IFS splitting
 
-## File Descriptors
+### PIPESTATUS Variable ✅
+The `PIPESTATUS` array containing exit statuses of pipeline commands is now implemented:
+- `${PIPESTATUS[@]}` returns all exit codes from most recent pipeline
+- `${PIPESTATUS[0]}`, `${PIPESTATUS[1]}`, etc. for individual access
+- Note: Initial value differs slightly (set to `[0]` after first command vs empty in bash)
 
-### {fd} variable syntax (4 tests)
+### read Builtin Options ✅
+Several `read` options are now working:
+- `-a array` - read words into array
+- `-d delim` - use custom delimiter instead of newline
+- `-n N` - read up to N characters (stops at delimiter)
+- Note: `-N` (exact count ignoring delimiters) not yet implemented
+
+### printf %q Format ✅
+The `%q` format for shell quoting is implemented:
+- Safely quotes strings for use in shell commands
+- Handles special characters, control characters, and spaces
+
+### set -f (noglob) ✅
+The `set -f` / `set -o noglob` option to disable pathname expansion is implemented:
+- Prevents `*`, `?`, `[` from being expanded as globs
+
+### mapfile/readarray ✅
+The `mapfile` and `readarray` builtins for reading lines into an array are implemented:
+- `mapfile -t arr` - read lines into array, trimming newlines
+- `readarray arr` - alias for mapfile
+- Supports `-n count`, `-s skip`, `-O origin`, `-d delim` options
+
+### Here-doc Fixes ✅
+Several here-doc edge cases are now fixed:
+- **Unmatched quotes in heredoc**: Quotes are now literal in heredoc content (e.g., `"two` preserves the `"`)
+- **Heredoc as command prefix**: `<<EOF cmd` syntax now works (redirections before command name)
+- Remaining: multiple heredocs on same line, heredoc after function definition
+
+---
+
+## Summary by Category
+
+| Category | Tests | Priority | AI Agent Priority | Status |
+|----------|-------|----------|-------------------|--------|
+| **PIPESTATUS variable** | 7 | High | Critical | ✅ Done |
+| **read -a array** | ~3 | Medium | Critical | ✅ Done |
+| **read -d/-n options** | ~4 | Medium | High | ✅ Done |
+| **printf %q format** | 14 | Low | High | ✅ Done |
+| **set -f (noglob)** | 2 | Low | High | ✅ Done |
+| **mapfile/readarray** | 13 | Medium | Critical | ✅ Done |
+| **errexit in compound commands** | 9 | High | Critical | Pending |
+| **read -N option** | ~2 | Medium | High | Pending |
+| IFS edge cases | ~8 | High | Medium | Pending |
+| Here-doc edge cases | ~5 | Medium | Medium | Partial ✅ |
+| Right brace in default value | 46 | Medium | Medium | Pending |
+| extglob patterns | 50 | Low | Low | - |
+| File descriptor operations | ~15 | Low | Low | - |
+| Interactive/Shell invocation | ~85 | Out of scope | Out of scope | - |
+| History builtin | 29 | Out of scope | Out of scope | - |
+| Test helpers not available | ~70 | Infrastructure | - | - |
+| Test data/external deps | ~55 | Infrastructure | - | - |
+| Other | ~100 | Various | - | - |
+
+---
+
+## High Priority (Core functionality gaps)
+
+### PIPESTATUS Variable (7 tests) ⭐ AI Critical
+The `PIPESTATUS` array containing exit statuses of pipeline commands is not implemented.
+- **AI Use Case**: Agents frequently chain commands and need to identify which stage failed
+- Example: `cmd1 | cmd2 | cmd3; echo "${PIPESTATUS[@]}"` to get `0 1 0`
+
+### errexit in Compound Commands (9 tests) ⭐ AI Critical
+`set -e` (errexit) doesn't interact correctly with:
+- Brace groups `{ }`
+- Pipelines
+- Subshells
+- **AI Use Case**: Scripts must fail reliably on errors for agent error handling
+
+### IFS Edge Cases (~8 tests)
+Complex IFS handling edge cases remain:
+- Empty IFS with positional parameter existence checks (bash checks if params exist, not if expansion is empty)
+- IFS with backslash in certain contexts
+- Some `$*` joining edge cases with empty IFS
+
+---
+
+## Medium Priority (Commonly used features)
+
+### Right Brace in Default Value (46 tests)
+Complex parameter expansions with `}` in default values like `${x:-a}b}` have parsing limitations.
+
+### Here-Document Edge Cases (11 tests)
+- Quoted delimiters with special characters
+- Multiple here-docs on same line
+- Here-doc after function definition
+
+### Parse Error Detection (10 tests)
+Some parse error messages and detection differ from bash:
+- Unterminated quotes
+- Nested array literals
+- Ambiguous syntax
+
+---
+
+## Low Priority (Advanced/rarely used features)
+
+### Shell Options
+
+#### extglob (50 tests)
+Extended glob patterns like `@(foo|bar)`, `+(pattern)`, `?(pattern)`, `!(pattern)` are not supported.
+
+#### noclobber / set -C (6 tests)
+The `set -C` option to prevent overwriting files with `>` is not implemented.
+
+#### noglob / set -f (2 tests) ⭐ AI High
+The `set -f` option to disable pathname expansion is not implemented.
+- **AI Use Case**: Safely handle untrusted input containing glob characters (`*`, `?`, `[`)
+- Example: `set -f; echo $untrusted_var; set +f`
+
+#### noexec / set -n (1 test)
+The `set -n` option to parse but not execute commands is not implemented.
+
+#### globskipdots (3 tests)
+The `shopt -s globskipdots` option is not implemented.
+
+#### POSIX mode (8 tests)
+`set -o posix` for strict POSIX compliance is not implemented.
+
+### Builtins
+
+#### mapfile/readarray (13 tests) ⭐ AI Critical
+The `mapfile` and `readarray` builtins for reading lines into an array are not implemented.
+- **AI Use Case**: Essential for processing multi-line command output
+- Example: `mapfile -t files < <(find . -name "*.ts")`
+
+#### read Options (22 tests)
+Advanced `read` options are not implemented:
+- `-a array` - read into array ⭐ **AI Critical** - parse line into array fields
+- `-d delim` - custom delimiter ⭐ **AI High** - handle NUL-separated `find -print0` output
+- `-n N` / `-N N` - read N characters ⭐ **AI High** - read fixed-length fields
+- `-t timeout` - timeout (low priority for sandboxed agents)
+- `-u fd` - read from file descriptor
+- `-s` - silent mode (no TTY in sandbox)
+- `-e` - use readline (no TTY in sandbox)
+- `-i text` - default text
+- `-p prompt` - prompt string
+- `-P` - physical path
+
+#### printf %q Format (14 tests) ⭐ AI High
+The `%q` format for shell quoting and `set` output format are not implemented.
+- **AI Use Case**: Safely quote strings when agents generate shell commands programmatically
+- Example: `printf '%q ' "$untrusted_input"` for safe command construction
+
+#### printf strftime (4 tests)
+The `%(format)T` strftime format is not implemented.
+
+#### hash (3 tests)
+The `hash` builtin for managing the command hash table is not implemented.
+
+### File Descriptors
+
+#### {fd} Variable Syntax (3 tests)
 Automatic file descriptor allocation with `{fd}>file` syntax is not implemented.
 
-### Close/move syntax (8 tests)
+#### Close/Move Syntax (5 tests)
 File descriptor close (`>&-`, `<&-`) and move (`>&N-`) syntax is not implemented.
 
-### Advanced redirections (10 tests)
+#### Advanced Redirections (6 tests)
 - `exec N<file` - opening specific file descriptors
 - `N<&M` - duplicating file descriptors
-- Read-write mode `<>` (3 tests)
-- Stderr output inside command block with stdout redirect (1 test)
+- Read-write mode `<>` (2 tests)
+- Stderr output inside command block with stdout redirect
 
-### FD propagation (1 test)
-File descriptor inheritance across statements is not fully implemented.
+#### High FD Numbers (2 tests)
+Redirect to file descriptor numbers > 99 is not implemented.
 
-## Filesystem
+### Filesystem
 
-### Symbolic links (7 tests)
+#### Symbolic Links (6 tests)
 Symlink operations including:
 - `ln -s` command
 - `-h` / `-L` test operators
 - `pwd -P` / `cd -P` physical path resolution
 
-### File time comparison (3 tests)
+#### File Time Comparison (2 tests)
 `-ot` (older than), `-nt` (newer than), `-ef` (same file) test operators are not implemented.
 
-### Permission denied execution (3 tests)
-Execution permission checking for scripts is not fully implemented. Returns exit code 127 instead of 126.
+#### Permission Denied (1 test)
+Execution permission checking returns exit code 127 instead of 126.
 
-### Ambiguous redirect (1 test)
-Redirect to `"$@"` with multiple arguments should produce "ambiguous redirect" error.
+### Arithmetic
 
-## Arithmetic
-
-### 64-bit integers (13 tests)
+#### 64-bit Integers (7 tests)
 JavaScript uses 53-bit precision for numbers and 32-bit for bitwise operations:
-- Large integer overflow (7 tests)
-- 64-bit shift operations (3 tests)
-- printf with unsigned/octal/hex of negative numbers (3 tests)
+- Large integer overflow
+- 64-bit shift operations
+- printf with unsigned/octal/hex of negative numbers
 
-### Dynamic variable names (5 tests)
+#### Dynamic Variable Names (5 tests)
 Runtime variable name construction in arithmetic like `$((f$x + 1))` is not implemented.
 
-### Comments in arithmetic (5 tests)
+#### Comments in Arithmetic (1 test)
 Comments inside `$((...))` are not supported.
 
-### Array operations (11 tests)
-- Array comparison `(( a == b ))` (1 test)
-- Array value coercion (8 tests)
-- Associative array key expansion with `$var` (2 tests)
+#### Array Operations in Arithmetic (8 tests)
+- Array comparison `(( a == b ))`
+- Array value coercion
+- Associative array key expansion with `$var`
 
-## Parameter Expansion
+### Parameter Expansion
 
-### Right brace in default value (54 tests)
-Complex parameter expansions with `}` in default values like `${x:-a}b}` have parsing limitations.
-
-### ${@:0:N} slice (5 tests)
+#### ${@:0:N} Slice (5 tests)
 Slicing positional parameters starting from position 0 (which includes `$0`) is not implemented.
 
-### Backslash edge cases (5 tests)
-Some backslash escape sequences in parameter expansion are not handled.
+#### Glob After $@ (2 tests)
+Glob expansion after `$@` expansion has edge cases.
 
-### Pattern with literal $ (1 test)
-Strip patterns containing literal `$` characters have edge cases.
+### Brace Expansion
 
-## Brace Expansion
+#### Variable Expansion Order (1 test)
+In bash, brace expansion happens before variable expansion.
 
-### Variable expansion order (2 tests)
-In bash, brace expansion happens before variable expansion. `{$a,b}` expands differently.
-
-### Mixed case ranges (1 test)
+#### Mixed Case Ranges (1 test)
 Character ranges like `{z..A}` mixing cases are not implemented.
 
-### Side effects (1 test)
+#### Side Effects (1 test)
 Side effects in brace expansion like `{a,b}-$((i++))` don't evaluate correctly.
 
-### Escaped braces (1 test)
+#### Escaped Braces (1 test)
 Complex escaped braces in expansion are not handled.
 
-### Tilde in braces (1 test)
+#### Tilde in Braces (1 test)
 `~{a,b}` tilde expansion within braces is not implemented.
 
-## Control Flow
+### Quoting
 
-### errexit in compound commands (9 tests)
-`set -e` (errexit) doesn't interact correctly with:
-- Brace groups `{ }`
-- Pipelines
-- Subshells
-
-### Redirect on control flow (1 test)
-Redirections on `break`, `continue`, `return` are not implemented.
-
-## Quoting
-
-### Backtick quoting (6 tests)
+#### Backtick Quoting (4 tests)
 Complex escape sequences within backticks `` `...` `` are not fully supported.
 
-### Unterminated quote errors (4 tests)
-Parse error messages for unterminated quotes differ from bash.
+### Conditional Expressions
 
-## Conditional Expressions
-
-### [[ ]] edge cases (7 tests)
+#### [[ ]] Edge Cases (5 tests)
 - Runtime evaluation via variable expansion
 - Environment variable prefix
 - Arguments resembling operators
+- Tilde expansion edge cases
 
-### Tilde in [[ ]] (1 test)
-Tilde expansion edge cases within `[[ ]]`.
+### Functions
 
-## Functions
-
-### Name with expansion (3 tests)
+#### Name with Expansion (2 tests)
 Function names containing `$` or command substitution are not supported.
 
-### Here-doc after definition (1 test)
+#### Here-doc After Definition (1 test)
 `func() { } <<EOF` syntax is not implemented.
 
-## IFS and Splitting
+### Scoping
 
-### Special IFS values (7 tests)
-IFS with newline, backslash, or empty string has edge cases.
-
-### IFS with newline (1 test)
-`IFS=$'\n'` behavior differs in some contexts.
-
-## Here-Documents
-
-### Edge cases (11 tests)
-- Quoted delimiters with special characters
-- Multiple here-docs on same line
-- Here-doc after function definition
-
-## printf
-
-### %q format (14 tests)
-The `%q` format for shell quoting and `set` output format are not implemented.
-
-### strftime format (4 tests)
-The `%(format)T` strftime format is not implemented.
-
-## Parsing
-
-### Parse error detection (11 tests)
-Some parse error messages and detection differ from bash.
-
-### Nested array literal (1 test)
-`a=( inside=() )` should be a parse error but is not detected.
-
-### Newlines in compound lists (1 test)
-Newline handling in some compound command contexts.
-
-### Variable vs redirect ambiguity (1 test)
-`x=1>file` parsing ambiguity.
-
-## Scoping
-
-### Temp binding edge cases (9 tests)
+#### Temp Binding Edge Cases (4 tests)
 Temporary variable bindings (`VAR=value command`) have edge cases with:
 - Dynamic local variables
 - Nested temp bindings
 - Mutation within temp scope
 
-## exec Builtin
+---
 
-### Special behaviors (2 tests)
-Some `exec` edge cases without arguments or with special redirections.
+## Out of Scope
 
-## Special Builtins
+### Interactive Shell Invocation (85 tests)
+Tests requiring `$SH -c` or `$SH -i` to spawn subshells, TTY interaction, or process control.
 
-### Redefinition (1 test)
-Redefining special builtins like `eval`, `export` as functions is not implemented.
+### History Builtin (29 tests)
+The `history` builtin and history expansion are not implemented.
+
+### Oils-Specific Features (10 tests)
+YSH/Oils extensions like `shopt -s ysh:*`, `strict_arg_parse`, `command_sub_errexit`.
+
+### ZSH-Specific (3 tests)
+ZSH-specific `setopt` options.
+
+---
+
+## Infrastructure (Test Environment)
+
+### Test Helpers Not Available (~14 tests)
+Python test helpers used by upstream tests:
+- `argv.py` (42 tests) - ✅ Implemented
+- `printenv.py` (7 tests) - ✅ Implemented
+- `stdout_stderr.py` (7 tests) - ✅ Implemented
+- `read_from_fd.py` (4 tests) - ✅ Implemented
+- `python2` command (14 tests) - Not implemented (requires Python)
+
+### External Commands
+Commands implemented as test helpers:
+- `od` (27 tests) - ✅ Basic implementation
+- `tac` (12 tests) - ✅ Implemented
+- `hostname` (2 tests) - ✅ Implemented
+
+### Test Data Directory (29 tests)
+Tests requiring `$REPO_ROOT/spec/testdata/` files.
 
 ---
 
@@ -359,15 +484,3 @@ The following test files are entirely skipped in `spec.test.ts`:
 - `arg-parse.test.sh`
 - `append.test.sh`
 - `bugs.test.sh`
-
----
-
-## Out of Scope
-
-The following are intentionally not implemented as they are outside the scope of bash-env:
-
-### Interactive shell invocation (81 tests)
-Tests requiring `$SH -c` or `$SH -i` to spawn subshells.
-
-### Oils-specific features (13 tests)
-YSH/Oils extensions like `shopt -s ysh:*`, `strict_arg_parse`, `command_sub_errexit`.

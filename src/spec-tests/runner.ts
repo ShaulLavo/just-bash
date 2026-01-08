@@ -10,9 +10,9 @@ import {
   getExpectedStdout,
   isNotImplementedForBash,
   type ParsedSpecFile,
-  requiresExternalCommands,
   type TestCase,
 } from "./parser.js";
+import { testHelperCommands } from "./spec-helpers.js";
 
 export interface TestResult {
   testCase: TestCase;
@@ -33,8 +33,6 @@ export interface TestResult {
 export interface RunOptions {
   /** Only run tests matching this pattern */
   filter?: RegExp;
-  /** Skip tests requiring external commands */
-  skipExternal?: boolean;
   /** Custom Bash options */
   bashEnvOptions?: ConstructorParameters<typeof Bash>[0];
 }
@@ -57,15 +55,6 @@ export async function runTestCase(
       passed: true,
       skipped: true,
       skipReason: "N-I (Not Implemented) for bash",
-    };
-  }
-
-  if (options.skipExternal !== false && requiresExternalCommands(testCase)) {
-    return {
-      testCase,
-      passed: true,
-      skipped: true,
-      skipReason: "Requires external commands (printenv.py, argv.py, etc.)",
     };
   }
 
@@ -106,6 +95,7 @@ export async function runTestCase(
       TMPDIR: "/tmp",
       SH: "bash", // For tests that check which shell is running
     },
+    customCommands: testHelperCommands,
     ...options.bashEnvOptions,
   });
 

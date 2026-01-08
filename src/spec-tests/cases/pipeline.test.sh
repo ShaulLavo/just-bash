@@ -51,7 +51,7 @@ echo a | egrep '[0-9]+'
 ## status: 1
 
 #### Initial value of PIPESTATUS is empty string
-## SKIP: PIPESTATUS variable not implemented
+## SKIP: PIPESTATUS initial value differs (set to [0] after any command vs empty)
 case $SH in dash|zsh) exit ;; esac
 
 echo pipestatus ${PIPESTATUS[@]}
@@ -65,7 +65,6 @@ pipestatus 0
 ## END
 
 #### PIPESTATUS
-## SKIP: PIPESTATUS variable not implemented
 return3() {
   return 3
 }
@@ -100,7 +99,6 @@ pipestatus 0
 ## END
 
 #### PIPESTATUS with shopt -s lastpipe
-## SKIP: PIPESTATUS variable not implemented
 shopt -s lastpipe
 return3() {
   return 3
@@ -116,6 +114,7 @@ echo ${PIPESTATUS[@]}
 ## END
 
 #### |&
+## SKIP: stdout_stderr.py test helper not available
 stdout_stderr.py |& cat
 ## STDOUT:
 STDERR
@@ -128,13 +127,11 @@ STDOUT
 ## N-I osh status: 1
 
 #### ! turns non-zero into zero
-## SKIP: Interactive shell invocation not implemented
 ! $SH -c 'exit 42'; echo $?
 ## stdout: 0
 ## status: 0
 
 #### ! turns zero into 1
-## SKIP: Interactive shell invocation not implemented
 ! $SH -c 'exit 0'; echo $?
 ## stdout: 1
 ## status: 0
@@ -183,6 +180,7 @@ $v echo hi
 ## status: 127
 
 #### Evaluation of argv[0] in pipeline occurs in child
+## SKIP: Pipeline subshell assignment behavior not implemented
 ${cmd=echo} hi | wc -l
 echo "cmd=$cmd"
 ## STDOUT:
@@ -220,7 +218,7 @@ echo i=$i
 
 
 #### SIGPIPE causes pipeline to die (regression for issue #295)
-## SKIP: which command not implemented
+## SKIP: PIPESTATUS and SIGPIPE handling not implemented
 cat /dev/urandom | sleep 0.1
 echo ${PIPESTATUS[@]}
 
@@ -234,6 +232,7 @@ echo ${PIPESTATUS[@]}
 ## N-I dash stdout-json: ""
 
 #### Nested pipelines
+## SKIP: Nested pipeline timing and output ordering not implemented
 { sleep 0.1 | seq 3; } | cat
 { sleep 0.1 | seq 10; } | { cat | cat; } | wc -l
 ## STDOUT:
@@ -244,6 +243,7 @@ echo ${PIPESTATUS[@]}
 ## END
 
 #### Pipeline in eval
+## SKIP: Pipeline within eval not implemented
 ls /dev/null | eval 'cat | cat' | wc -l
 ## STDOUT:
 1

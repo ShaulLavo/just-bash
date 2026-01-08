@@ -40,6 +40,15 @@ export type CommandName =
   | "cut"
   | "paste"
   | "tr"
+  | "rev"
+  | "nl"
+  | "fold"
+  | "expand"
+  | "unexpand"
+  | "strings"
+  | "split"
+  | "column"
+  | "join"
   | "tee"
   | "find"
   | "basename"
@@ -71,7 +80,15 @@ export type CommandName =
   | "file"
   | "html-to-markdown"
   | "help"
-  | "which";
+  | "which"
+  | "tac"
+  | "hostname"
+  | "od"
+  | "gzip"
+  | "gunzip"
+  | "zcat"
+  | "yq"
+  | "xan";
 
 /** Network command names (only available when network is configured) */
 export type NetworkCommandName = "curl";
@@ -201,6 +218,42 @@ const commandLoaders: LazyCommandDef<CommandName>[] = [
   {
     name: "tr",
     load: async () => (await import("./tr/tr.js")).trCommand,
+  },
+  {
+    name: "rev",
+    load: async () => (await import("./rev/rev.js")).rev,
+  },
+  {
+    name: "nl",
+    load: async () => (await import("./nl/nl.js")).nl,
+  },
+  {
+    name: "fold",
+    load: async () => (await import("./fold/fold.js")).fold,
+  },
+  {
+    name: "expand",
+    load: async () => (await import("./expand/expand.js")).expand,
+  },
+  {
+    name: "unexpand",
+    load: async () => (await import("./expand/unexpand.js")).unexpand,
+  },
+  {
+    name: "strings",
+    load: async () => (await import("./strings/strings.js")).strings,
+  },
+  {
+    name: "split",
+    load: async () => (await import("./split/split.js")).split,
+  },
+  {
+    name: "column",
+    load: async () => (await import("./column/column.js")).column,
+  },
+  {
+    name: "join",
+    load: async () => (await import("./join/join.js")).join,
   },
   {
     name: "tee",
@@ -356,7 +409,49 @@ const commandLoaders: LazyCommandDef<CommandName>[] = [
     name: "which",
     load: async () => (await import("./which/which.js")).whichCommand,
   },
+
+  // Misc utilities
+  {
+    name: "tac",
+    load: async () => (await import("./tac/tac.js")).tac,
+  },
+  {
+    name: "hostname",
+    load: async () => (await import("./hostname/hostname.js")).hostname,
+  },
+  {
+    name: "od",
+    load: async () => (await import("./od/od.js")).od,
+  },
+
+  // Compression
+  {
+    name: "gzip",
+    load: async () => (await import("./gzip/gzip.js")).gzipCommand,
+  },
+  {
+    name: "gunzip",
+    load: async () => (await import("./gzip/gzip.js")).gunzipCommand,
+  },
+  {
+    name: "zcat",
+    load: async () => (await import("./gzip/gzip.js")).zcatCommand,
+  },
 ];
+
+// yq requires native parsers (fast-xml-parser, etc.) that don't work in browsers
+// __BROWSER__ is defined by esbuild at build time for browser bundles
+declare const __BROWSER__: boolean | undefined;
+if (typeof __BROWSER__ === "undefined" || !__BROWSER__) {
+  commandLoaders.push({
+    name: "yq" as CommandName,
+    load: async () => (await import("./yq/yq.js")).yqCommand,
+  });
+  commandLoaders.push({
+    name: "xan" as CommandName,
+    load: async () => (await import("./xan/xan.js")).xanCommand,
+  });
+}
 
 // Network commands - only registered when network is configured
 const networkCommandLoaders: LazyCommandDef<NetworkCommandName>[] = [

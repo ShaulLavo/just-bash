@@ -135,10 +135,14 @@ await env.exec('echo "hello" > file.txt'); // writes to real filesystem
 
 ### AI SDK Tool
 
-Creates a bash tool for use with the [AI SDK](https://ai-sdk.dev/), because [agents love bash](https://vercel.com/blog/we-removed-80-percent-of-our-agents-tools).
+For AI agents, use [`bash-tool`](https://github.com/vercel-labs/bash-tool) which is optimized for just-bash and provides a ready-to-use [AI SDK](https://ai-sdk.dev/) tool:
+
+```bash
+npm install bash-tool
+```
 
 ```typescript
-import { createBashTool } from "just-bash/ai";
+import { createBashTool } from "bash-tool";
 import { generateText } from "ai";
 
 const bashTool = createBashTool({
@@ -146,13 +150,13 @@ const bashTool = createBashTool({
 });
 
 const result = await generateText({
-  model: "anthropic/claude-haiku-4.5",
+  model: "anthropic/claude-sonnet-4",
   tools: { bash: bashTool },
   prompt: "Count the users in /data/users.json",
 });
 ```
 
-See [`examples/bash-agent`](./examples/bash-agent) for a full implementation.
+See the [bash-tool documentation](https://github.com/vercel-labs/bash-tool) for more details and examples.
 
 ### Vercel Sandbox Compatible API
 
@@ -233,15 +237,19 @@ pnpm shell --no-network
 
 ### File Operations
 
-`cat`, `cp`, `ln`, `ls`, `mkdir`, `mv`, `readlink`, `rm`, `stat`, `touch`, `tree`
+`cat`, `cp`, `file`, `ln`, `ls`, `mkdir`, `mv`, `readlink`, `rm`, `split`, `stat`, `touch`, `tree`
 
 ### Text Processing
 
-`awk`, `base64`, `comm`, `cut`, `diff`, `grep`, `head`, `jq`, `md5sum`, `printf`, `sed`, `sha1sum`, `sha256sum`, `sort`, `tail`, `tr`, `uniq`, `wc`, `xargs`
+`awk`, `base64`, `column`, `comm`, `cut`, `diff`, `expand`, `fold`, `grep` (+ `egrep`, `fgrep`), `head`, `join`, `jq`, `md5sum`, `nl`, `od`, `paste`, `printf`, `rev`, `sed`, `sha1sum`, `sha256sum`, `sort`, `strings`, `tac`, `tail`, `tr`, `unexpand`, `uniq`, `wc`, `xan`, `xargs`, `yq`
+
+### Compression
+
+`gzip` (+ `gunzip`, `zcat`)
 
 ### Navigation & Environment
 
-`basename`, `cd`, `dirname`, `du`, `echo`, `env`, `export`, `find`, `printenv`, `pwd`, `tee`
+`basename`, `cd`, `dirname`, `du`, `echo`, `env`, `export`, `find`, `hostname`, `printenv`, `pwd`, `tee`
 
 ### Shell Utilities
 
@@ -359,6 +367,14 @@ pnpm test:run    # Run tests once
 pnpm typecheck   # Type check without emitting
 pnpm build       # Build TypeScript
 pnpm shell       # Run interactive shell
+```
+
+## AI Agent Instructions
+
+For AI agents, we recommend using [`bash-tool`](https://github.com/vercel-labs/bash-tool) which is optimized for just-bash and provides additional guidance in its `AGENTS.md`:
+
+```bash
+cat node_modules/bash-tool/dist/AGENTS.md
 ```
 
 ## License

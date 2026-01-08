@@ -2,6 +2,7 @@
 ## oils_failures_allowed: 8
 
 #### sh -i
+## SKIP: Shell invocation not supported
 # Notes:
 # - OSH prompt goes to stdout and bash goes to stderr
 # - This test seems to fail on the system bash, but succeeds with spec-bin/bash
@@ -341,6 +342,7 @@ status=0
 ## END
 
 #### default PS1
+## SKIP: Shell startup options not supported
 #flags='--norc --noprofile'
 flags='--rcfile /dev/null'
 
