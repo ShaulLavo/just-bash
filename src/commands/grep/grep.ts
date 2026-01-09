@@ -1,9 +1,16 @@
 import type { Command, CommandContext, ExecResult } from '../../types.js'
 import { matchGlob } from '../../utils/glob.js'
 import { hasHelpFlag, showHelp, unknownOption } from '../help.js'
-import { grepBufferLiteral, type FastGrepOptions } from './fast-grep.js'
+import {
+	grepBufferLiteral,
+	isBinaryChunk,
+	type FastGrepOptions,
+} from './fast-grep.js'
 
 const textEncoder = new TextEncoder()
+const textDecoder = new TextDecoder()
+
+type BinaryMode = 'binary' | 'text' | 'without-match'
 
 const grepHelp = {
 	name: 'grep',
@@ -25,6 +32,9 @@ const grepHelp = {
 		'-h, --no-filename        suppress the file name prefix on output',
 		'-o, --only-matching      show only nonempty parts of lines that match',
 		'-q, --quiet, --silent    suppress all normal output',
+		'-a, --text               process binary files as text',
+		'-I                       treat binary files as without-match',
+		'    --binary-files=TYPE  TYPE is binary, text, or without-match',
 		'-r, -R, --recursive      search directories recursively',
 		'-A NUM                   print NUM lines of trailing context',
 		'-B NUM                   print NUM lines of leading context',
@@ -60,6 +70,7 @@ export const grepCommand: Command = {
 		let onlyMatching = false
 		let noFilename = false
 		let quietMode = false
+		let binaryMode: BinaryMode = 'binary'
 		let maxCount = 0 // 0 means unlimited
 		let beforeContext = 0
 		let afterContext = 0
@@ -94,6 +105,22 @@ export const grepCommand: Command = {
 				// Handle --exclude-dir=pattern (can be specified multiple times)
 				if (arg.startsWith('--exclude-dir=')) {
 					excludeDirPatterns.push(arg.slice('--exclude-dir='.length))
+					continue
+				}
+
+				// Handle --binary-files=TYPE
+				if (arg.startsWith('--binary-files=')) {
+					const mode = parseBinaryMode(arg.slice('--binary-files='.length))
+					if (!mode) {
+						return {
+							stdout: '',
+							stderr: `grep: invalid argument '${arg.slice(
+								'--binary-files='.length
+							)}' for '--binary-files'\n`,
+							exitCode: 2,
+						}
+					}
+					binaryMode = mode
 					continue
 				}
 
@@ -168,6 +195,8 @@ export const grepCommand: Command = {
 					else if (flag === 'h' || flag === '--no-filename') noFilename = true
 					else if (flag === 'q' || flag === '--quiet' || flag === '--silent')
 						quietMode = true
+					else if (flag === 'a' || flag === '--text') binaryMode = 'text'
+					else if (flag === 'I') binaryMode = 'without-match'
 					else if (flag.startsWith('--')) {
 						return unknownOption('grep', flag)
 					} else if (flag.length === 1) {
@@ -378,16 +407,29 @@ export const grepCommand: Command = {
 				}
 
 				const filenamePrefix = showFilename ? file : ''
+				const buffer = await ctx.fs.readFileBuffer(filePath)
+				const isBinary = isBinaryChunk(buffer)
+
+				if (isBinary && binaryMode === 'without-match') {
+					return {
+						file,
+						output: countOnly ? formatCountOutput(filenamePrefix, 0) : '',
+						matched: false,
+						isDirectory: false,
+						error: false,
+					}
+				}
+
 				const result = fastLiteralOptions
 					? grepBufferLiteralContent(
-							await ctx.fs.readFileBuffer(filePath),
+							buffer,
 							fastLiteralOptions,
 							showLineNumbers,
 							countOnly,
 							filenamePrefix
 						)
 					: grepContent(
-							await ctx.fs.readFile(filePath),
+							textDecoder.decode(buffer),
 							regex,
 							invertMatch,
 							showLineNumbers,
@@ -398,6 +440,25 @@ export const grepCommand: Command = {
 							afterContext,
 							maxCount
 						)
+
+				if (
+					isBinary &&
+					binaryMode === 'binary' &&
+					!countOnly &&
+					!filesWithMatches &&
+					!filesWithoutMatch &&
+					!quietMode
+				) {
+					return {
+						file,
+						output: result.matched
+							? `Binary file ${file} matches\n`
+							: '',
+						matched: result.matched,
+						isDirectory: false,
+						error: false,
+					}
+				}
 
 				return {
 					file,
@@ -511,10 +572,10 @@ function grepBufferLiteralContent(
 	const matches = grepBufferLiteral(buffer, options)
 
 	if (countOnly) {
-		const countStr = filename
-			? `${filename}:${matches.length}`
-			: String(matches.length)
-		return { output: `${countStr}\n`, matched: matches.length > 0 }
+		return {
+			output: formatCountOutput(filename, matches.length),
+			matched: matches.length > 0,
+		}
 	}
 
 	if (matches.length === 0) {
@@ -531,6 +592,18 @@ function grepBufferLiteralContent(
 	})
 
 	return { output: `${outputLines.join('\n')}\n`, matched: true }
+}
+
+function formatCountOutput(filename: string, count: number): string {
+	const countStr = filename ? `${filename}:${count}` : String(count)
+	return `${countStr}\n`
+}
+
+function parseBinaryMode(mode: string): BinaryMode | null {
+	if (mode === 'binary' || mode === 'text' || mode === 'without-match') {
+		return mode
+	}
+	return null
 }
 
 function escapeRegexForBasicGrep(str: string): string {
