@@ -38,3 +38,9 @@
 
 - We explicitly don't support 64bit integers
 - Must never hang. All parsing and execution should have reasonable max limits to avoid runaway compute.
+
+## 🦾 Coding Standards
+
+### 🗣️ Comments & Complexity
+- **Minimalism**: Avoid adding comments unless they are important (explain *why*, not *what*).
+- **Code Clarity**: If code is complex, reduce nesting and move statements/calculations into variables or functions with descriptive names over commenting.
