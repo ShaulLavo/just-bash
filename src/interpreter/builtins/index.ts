@@ -20,19 +20,19 @@
  * - source/.: Execute commands from a file in current environment
  */
 
-export { handleBreak } from './break.js'
-export { handleCd } from './cd.js'
-export { handleContinue } from './continue.js'
-export { handleDeclare, handleReadonly } from './declare.js'
-export { handleEval } from './eval.js'
-export { handleExit } from './exit.js'
-export { handleExport } from './export.js'
-export { handleLet } from './let.js'
-export { handleLocal } from './local.js'
-export { handleMapfile } from './mapfile.js'
-export { handleRead } from './read.js'
-export { handleReturn } from './return.js'
-export { handleSet } from './set.js'
-export { handleShift } from './shift.js'
-export { handleSource } from './source.js'
-export { handleUnset } from './unset.js'
+export { handleBreak } from "./break.js";
+export { handleCd } from "./cd.js";
+export { handleContinue } from "./continue.js";
+export { handleDeclare, handleReadonly } from "./declare.js";
+export { handleEval } from "./eval.js";
+export { handleExit } from "./exit.js";
+export { handleExport } from "./export.js";
+export { handleLet } from "./let.js";
+export { handleLocal } from "./local.js";
+export { handleMapfile } from "./mapfile.js";
+export { handleRead } from "./read.js";
+export { handleReturn } from "./return.js";
+export { handleSet } from "./set.js";
+export { handleShift } from "./shift.js";
+export { handleSource } from "./source.js";
+export { handleUnset } from "./unset.js";

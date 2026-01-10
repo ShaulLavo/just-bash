@@ -17,114 +17,114 @@
  * Carries stdout/stderr to preserve output during propagation.
  */
 abstract class ControlFlowError extends Error {
-	constructor(
-		message: string,
-		public stdout: string = '',
-		public stderr: string = ''
-	) {
-		super(message)
-	}
+  constructor(
+    message: string,
+    public stdout: string = "",
+    public stderr: string = "",
+  ) {
+    super(message);
+  }
 
-	/**
-	 * Prepend output from the current context before re-throwing.
-	 */
-	prependOutput(stdout: string, stderr: string): void {
-		this.stdout = stdout + this.stdout
-		this.stderr = stderr + this.stderr
-	}
+  /**
+   * Prepend output from the current context before re-throwing.
+   */
+  prependOutput(stdout: string, stderr: string): void {
+    this.stdout = stdout + this.stdout;
+    this.stderr = stderr + this.stderr;
+  }
 }
 
 /**
  * Error thrown when break is called to exit loops.
  */
 export class BreakError extends ControlFlowError {
-	readonly name = 'BreakError'
+  readonly name = "BreakError";
 
-	constructor(
-		public levels: number = 1,
-		stdout: string = '',
-		stderr: string = ''
-	) {
-		super('break', stdout, stderr)
-	}
+  constructor(
+    public levels: number = 1,
+    stdout: string = "",
+    stderr: string = "",
+  ) {
+    super("break", stdout, stderr);
+  }
 }
 
 /**
  * Error thrown when continue is called to skip to next iteration.
  */
 export class ContinueError extends ControlFlowError {
-	readonly name = 'ContinueError'
+  readonly name = "ContinueError";
 
-	constructor(
-		public levels: number = 1,
-		stdout: string = '',
-		stderr: string = ''
-	) {
-		super('continue', stdout, stderr)
-	}
+  constructor(
+    public levels: number = 1,
+    stdout: string = "",
+    stderr: string = "",
+  ) {
+    super("continue", stdout, stderr);
+  }
 }
 
 /**
  * Error thrown when return is called to exit a function.
  */
 export class ReturnError extends ControlFlowError {
-	readonly name = 'ReturnError'
+  readonly name = "ReturnError";
 
-	constructor(
-		public exitCode: number = 0,
-		stdout: string = '',
-		stderr: string = ''
-	) {
-		super('return', stdout, stderr)
-	}
+  constructor(
+    public exitCode: number = 0,
+    stdout: string = "",
+    stderr: string = "",
+  ) {
+    super("return", stdout, stderr);
+  }
 }
 
 /**
  * Error thrown when set -e (errexit) is enabled and a command fails.
  */
 export class ErrexitError extends ControlFlowError {
-	readonly name = 'ErrexitError'
+  readonly name = "ErrexitError";
 
-	constructor(
-		public readonly exitCode: number,
-		stdout: string = '',
-		stderr: string = ''
-	) {
-		super(`errexit: command exited with status ${exitCode}`, stdout, stderr)
-	}
+  constructor(
+    public readonly exitCode: number,
+    stdout: string = "",
+    stderr: string = "",
+  ) {
+    super(`errexit: command exited with status ${exitCode}`, stdout, stderr);
+  }
 }
 
 /**
  * Error thrown when set -u (nounset) is enabled and an unset variable is referenced.
  */
 export class NounsetError extends ControlFlowError {
-	readonly name = 'NounsetError'
+  readonly name = "NounsetError";
 
-	constructor(
-		public varName: string,
-		stdout: string = ''
-	) {
-		super(
-			`${varName}: unbound variable`,
-			stdout,
-			`bash: ${varName}: unbound variable\n`
-		)
-	}
+  constructor(
+    public varName: string,
+    stdout: string = "",
+  ) {
+    super(
+      `${varName}: unbound variable`,
+      stdout,
+      `bash: ${varName}: unbound variable\n`,
+    );
+  }
 }
 
 /**
  * Error thrown when exit builtin is called to terminate the script.
  */
 export class ExitError extends ControlFlowError {
-	readonly name = 'ExitError'
+  readonly name = "ExitError";
 
-	constructor(
-		public readonly exitCode: number,
-		stdout: string = '',
-		stderr: string = ''
-	) {
-		super(`exit`, stdout, stderr)
-	}
+  constructor(
+    public readonly exitCode: number,
+    stdout: string = "",
+    stderr: string = "",
+  ) {
+    super(`exit`, stdout, stderr);
+  }
 }
 
 /**
@@ -132,12 +132,12 @@ export class ExitError extends ControlFlowError {
  * Returns exit code 1 instead of 2 (syntax error).
  */
 export class ArithmeticError extends ControlFlowError {
-	readonly name = 'ArithmeticError'
+  readonly name = "ArithmeticError";
 
-	constructor(message: string, stdout: string = '', stderr: string = '') {
-		super(message, stdout, stderr)
-		this.stderr = stderr || `bash: ${message}\n`
-	}
+  constructor(message: string, stdout: string = "", stderr: string = "") {
+    super(message, stdout, stderr);
+    this.stderr = stderr || `bash: ${message}\n`;
+  }
 }
 
 /**
@@ -145,12 +145,12 @@ export class ArithmeticError extends ControlFlowError {
  * Returns exit code 1.
  */
 export class BadSubstitutionError extends ControlFlowError {
-	readonly name = 'BadSubstitutionError'
+  readonly name = "BadSubstitutionError";
 
-	constructor(message: string, stdout: string = '', stderr: string = '') {
-		super(message, stdout, stderr)
-		this.stderr = stderr || `bash: ${message}: bad substitution\n`
-	}
+  constructor(message: string, stdout: string = "", stderr: string = "") {
+    super(message, stdout, stderr);
+    this.stderr = stderr || `bash: ${message}: bad substitution\n`;
+  }
 }
 
 /**
@@ -159,18 +159,18 @@ export class BadSubstitutionError extends ControlFlowError {
  * Exit code 126 indicates a limit was exceeded.
  */
 export class ExecutionLimitError extends ControlFlowError {
-	readonly name = 'ExecutionLimitError'
-	static readonly EXIT_CODE = 126
+  readonly name = "ExecutionLimitError";
+  static readonly EXIT_CODE = 126;
 
-	constructor(
-		message: string,
-		public readonly limitType: 'recursion' | 'commands' | 'iterations',
-		stdout: string = '',
-		stderr: string = ''
-	) {
-		super(message, stdout, stderr)
-		this.stderr = stderr || `bash: ${message}\n`
-	}
+  constructor(
+    message: string,
+    public readonly limitType: "recursion" | "commands" | "iterations",
+    stdout: string = "",
+    stderr: string = "",
+  ) {
+    super(message, stdout, stderr);
+    this.stderr = stderr || `bash: ${message}\n`;
+  }
 }
 
 /**
@@ -178,11 +178,11 @@ export class ExecutionLimitError extends ControlFlowError {
  * spawned from within a loop context. Causes the subshell to exit cleanly.
  */
 export class SubshellExitError extends ControlFlowError {
-	readonly name = 'SubshellExitError'
+  readonly name = "SubshellExitError";
 
-	constructor(stdout: string = '', stderr: string = '') {
-		super('subshell exit', stdout, stderr)
-	}
+  constructor(stdout: string = "", stderr: string = "") {
+    super("subshell exit", stdout, stderr);
+  }
 }
 
 /**
@@ -190,11 +190,11 @@ export class SubshellExitError extends ControlFlowError {
  * These need special handling vs errexit/nounset which terminate execution.
  */
 export function isScopeExitError(
-	error: unknown
+  error: unknown,
 ): error is BreakError | ContinueError | ReturnError {
-	return (
-		error instanceof BreakError ||
-		error instanceof ContinueError ||
-		error instanceof ReturnError
-	)
+  return (
+    error instanceof BreakError ||
+    error instanceof ContinueError ||
+    error instanceof ReturnError
+  );
 }

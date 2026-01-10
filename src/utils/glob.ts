@@ -5,13 +5,13 @@
  */
 
 // Cache compiled regexes for glob patterns (key: pattern + flags)
-const globRegexCache = new Map<string, RegExp>()
+const globRegexCache = new Map<string, RegExp>();
 
 export interface MatchGlobOptions {
-	/** Case-insensitive matching */
-	ignoreCase?: boolean
-	/** Strip surrounding quotes from pattern before matching */
-	stripQuotes?: boolean
+  /** Case-insensitive matching */
+  ignoreCase?: boolean;
+  /** Strip surrounding quotes from pattern before matching */
+  stripQuotes?: boolean;
 }
 
 /**
@@ -28,74 +28,74 @@ export interface MatchGlobOptions {
  * @returns true if the name matches the pattern
  */
 export function matchGlob(
-	name: string,
-	pattern: string,
-	options?: MatchGlobOptions | boolean
+  name: string,
+  pattern: string,
+  options?: MatchGlobOptions | boolean,
 ): boolean {
-	// Support legacy signature: matchGlob(name, pattern, ignoreCase)
-	const opts: MatchGlobOptions =
-		typeof options === 'boolean' ? { ignoreCase: options } : (options ?? {})
+  // Support legacy signature: matchGlob(name, pattern, ignoreCase)
+  const opts: MatchGlobOptions =
+    typeof options === "boolean" ? { ignoreCase: options } : (options ?? {});
 
-	let cleanPattern = pattern
+  let cleanPattern = pattern;
 
-	// Strip surrounding quotes if requested
-	if (opts.stripQuotes) {
-		if (
-			(cleanPattern.startsWith('"') && cleanPattern.endsWith('"')) ||
-			(cleanPattern.startsWith("'") && cleanPattern.endsWith("'"))
-		) {
-			cleanPattern = cleanPattern.slice(1, -1)
-		}
-	}
+  // Strip surrounding quotes if requested
+  if (opts.stripQuotes) {
+    if (
+      (cleanPattern.startsWith('"') && cleanPattern.endsWith('"')) ||
+      (cleanPattern.startsWith("'") && cleanPattern.endsWith("'"))
+    ) {
+      cleanPattern = cleanPattern.slice(1, -1);
+    }
+  }
 
-	// Build cache key
-	const cacheKey = opts.ignoreCase ? `i:${cleanPattern}` : cleanPattern
-	let re = globRegexCache.get(cacheKey)
+  // Build cache key
+  const cacheKey = opts.ignoreCase ? `i:${cleanPattern}` : cleanPattern;
+  let re = globRegexCache.get(cacheKey);
 
-	if (!re) {
-		re = globToRegex(cleanPattern, opts.ignoreCase)
-		globRegexCache.set(cacheKey, re)
-	}
+  if (!re) {
+    re = globToRegex(cleanPattern, opts.ignoreCase);
+    globRegexCache.set(cacheKey, re);
+  }
 
-	return re.test(name)
+  return re.test(name);
 }
 
 /**
  * Convert a glob pattern to a RegExp.
  */
 function globToRegex(pattern: string, ignoreCase?: boolean): RegExp {
-	let regex = '^'
+  let regex = "^";
 
-	for (let i = 0; i < pattern.length; i++) {
-		const c = pattern[i]
-		if (c === '*') {
-			regex += '.*'
-		} else if (c === '?') {
-			regex += '.'
-		} else if (c === '[') {
-			// Character class - find closing bracket
-			let j = i + 1
-			while (j < pattern.length && pattern[j] !== ']') j++
-			regex += pattern.slice(i, j + 1)
-			i = j
-		} else if (
-			c === '.' ||
-			c === '+' ||
-			c === '^' ||
-			c === '$' ||
-			c === '{' ||
-			c === '}' ||
-			c === '(' ||
-			c === ')' ||
-			c === '|' ||
-			c === '\\'
-		) {
-			regex += `\\${c}`
-		} else {
-			regex += c
-		}
-	}
+  for (let i = 0; i < pattern.length; i++) {
+    const c = pattern[i];
+    if (c === "*") {
+      regex += ".*";
+    } else if (c === "?") {
+      regex += ".";
+    } else if (c === "[") {
+      // Character class - find closing bracket
+      let j = i + 1;
+      while (j < pattern.length && pattern[j] !== "]") j++;
+      regex += pattern.slice(i, j + 1);
+      i = j;
+    } else if (
+      c === "." ||
+      c === "+" ||
+      c === "^" ||
+      c === "$" ||
+      c === "{" ||
+      c === "}" ||
+      c === "(" ||
+      c === ")" ||
+      c === "|" ||
+      c === "\\"
+    ) {
+      regex += `\\${c}`;
+    } else {
+      regex += c;
+    }
+  }
 
-	regex += '$'
-	return new RegExp(regex, ignoreCase ? 'i' : '')
+  regex += "$";
+  return new RegExp(regex, ignoreCase ? "i" : "");
 }

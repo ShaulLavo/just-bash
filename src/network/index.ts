@@ -5,16 +5,16 @@
  */
 
 export {
-	createSecureFetch,
-	type SecureFetch,
-	type SecureFetchOptions,
-} from './fetch.js'
+  createSecureFetch,
+  type SecureFetch,
+  type SecureFetchOptions,
+} from "./fetch.js";
 
 export {
-	type FetchResult,
-	type HttpMethod,
-	NetworkAccessDeniedError,
-	type NetworkConfig,
-	RedirectNotAllowedError,
-	TooManyRedirectsError,
-} from './types.js'
+  type FetchResult,
+  type HttpMethod,
+  NetworkAccessDeniedError,
+  type NetworkConfig,
+  RedirectNotAllowedError,
+  TooManyRedirectsError,
+} from "./types.js";

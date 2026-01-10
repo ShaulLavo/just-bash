@@ -4,26 +4,26 @@
  * Provides types and utilities for registering user-provided TypeScript commands.
  */
 
-import type { Command, CommandContext, ExecResult } from './types.js'
+import type { Command, CommandContext, ExecResult } from "./types.js";
 
 /**
  * A custom command - either a Command object or a lazy loader.
  */
-export type CustomCommand = Command | LazyCommand
+export type CustomCommand = Command | LazyCommand;
 
 /**
  * Lazy-loaded custom command (for code-splitting).
  */
 export interface LazyCommand {
-	name: string
-	load: () => Promise<Command>
+  name: string;
+  load: () => Promise<Command>;
 }
 
 /**
  * Type guard to check if a custom command is lazy-loaded.
  */
 export function isLazyCommand(cmd: CustomCommand): cmd is LazyCommand {
-	return 'load' in cmd && typeof cmd.load === 'function'
+  return "load" in cmd && typeof cmd.load === "function";
 }
 
 /**
@@ -42,11 +42,11 @@ export function isLazyCommand(cmd: CustomCommand): cmd is LazyCommand {
  * ```
  */
 export function defineCommand(
-	name: string,
-	execute: (args: string[], ctx: CommandContext) => Promise<ExecResult>,
-	options?: { category?: string; description?: string }
+  name: string,
+  execute: (args: string[], ctx: CommandContext) => Promise<ExecResult>,
+  options?: { category?: string; description?: string },
 ): Command {
-	return { name, execute, ...options }
+  return { name, execute, ...options };
 }
 
 /**
@@ -54,14 +54,14 @@ export function defineCommand(
  * The command is only loaded when first executed.
  */
 export function createLazyCustomCommand(lazy: LazyCommand): Command {
-	let cached: Command | null = null
-	return {
-		name: lazy.name,
-		async execute(args: string[], ctx: CommandContext): Promise<ExecResult> {
-			if (!cached) {
-				cached = await lazy.load()
-			}
-			return cached.execute(args, ctx)
-		},
-	}
+  let cached: Command | null = null;
+  return {
+    name: lazy.name,
+    async execute(args: string[], ctx: CommandContext): Promise<ExecResult> {
+      if (!cached) {
+        cached = await lazy.load();
+      }
+      return cached.execute(args, ctx);
+    },
+  };
 }

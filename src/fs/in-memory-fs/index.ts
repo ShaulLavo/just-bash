@@ -1,1 +1,1 @@
-export { InMemoryFs } from './in-memory-fs.js'
+export { InMemoryFs } from "./in-memory-fs.js";

@@ -17,22 +17,22 @@
 
 /** Base interface for all AST nodes */
 export interface ASTNode {
-	type: string
-	/** Source line number (1-based) for $LINENO tracking. May be 0 or undefined for synthesized nodes. */
-	line?: number
+  type: string;
+  /** Source line number (1-based) for $LINENO tracking. May be 0 or undefined for synthesized nodes. */
+  line?: number;
 }
 
 /** Position information for error reporting */
 export interface Position {
-	line: number
-	column: number
-	offset: number
+  line: number;
+  column: number;
+  offset: number;
 }
 
 /** Span in source code */
 export interface Span {
-	start: Position
-	end: Position
+  start: Position;
+  end: Position;
 }
 
 // =============================================================================
@@ -41,18 +41,18 @@ export interface Span {
 
 /** Root node: a complete script */
 export interface ScriptNode extends ASTNode {
-	type: 'Script'
-	statements: StatementNode[]
+  type: "Script";
+  statements: StatementNode[];
 }
 
 /** A statement is a list of pipelines connected by && or || */
 export interface StatementNode extends ASTNode {
-	type: 'Statement'
-	pipelines: PipelineNode[]
-	/** Operators between pipelines: "&&" | "||" | ";" */
-	operators: ('&&' | '||' | ';')[]
-	/** Run in background? */
-	background: boolean
+  type: "Statement";
+  pipelines: PipelineNode[];
+  /** Operators between pipelines: "&&" | "||" | ";" */
+  operators: ("&&" | "||" | ";")[];
+  /** Run in background? */
+  background: boolean;
 }
 
 // =============================================================================
@@ -61,43 +61,43 @@ export interface StatementNode extends ASTNode {
 
 /** A pipeline: cmd1 | cmd2 | cmd3 */
 export interface PipelineNode extends ASTNode {
-	type: 'Pipeline'
-	commands: CommandNode[]
-	/** Negate exit status with ! */
-	negated: boolean
+  type: "Pipeline";
+  commands: CommandNode[];
+  /** Negate exit status with ! */
+  negated: boolean;
 }
 
 /** Union of all command types */
 export type CommandNode =
-	| SimpleCommandNode
-	| CompoundCommandNode
-	| FunctionDefNode
+  | SimpleCommandNode
+  | CompoundCommandNode
+  | FunctionDefNode;
 
 /** Simple command: name args... with optional redirections */
 export interface SimpleCommandNode extends ASTNode {
-	type: 'SimpleCommand'
-	/** Variable assignments before command: VAR=value cmd */
-	assignments: AssignmentNode[]
-	/** Command name (may be empty for assignment-only) */
-	name: WordNode | null
-	/** Command arguments */
-	args: WordNode[]
-	/** I/O redirections */
-	redirections: RedirectionNode[]
+  type: "SimpleCommand";
+  /** Variable assignments before command: VAR=value cmd */
+  assignments: AssignmentNode[];
+  /** Command name (may be empty for assignment-only) */
+  name: WordNode | null;
+  /** Command arguments */
+  args: WordNode[];
+  /** I/O redirections */
+  redirections: RedirectionNode[];
 }
 
 /** Compound commands: control structures */
 export type CompoundCommandNode =
-	| IfNode
-	| ForNode
-	| CStyleForNode
-	| WhileNode
-	| UntilNode
-	| CaseNode
-	| SubshellNode
-	| GroupNode
-	| ArithmeticCommandNode
-	| ConditionalCommandNode
+  | IfNode
+  | ForNode
+  | CStyleForNode
+  | WhileNode
+  | UntilNode
+  | CaseNode
+  | SubshellNode
+  | GroupNode
+  | ArithmeticCommandNode
+  | ConditionalCommandNode;
 
 // =============================================================================
 // CONTROL FLOW
@@ -105,95 +105,95 @@ export type CompoundCommandNode =
 
 /** if statement */
 export interface IfNode extends ASTNode {
-	type: 'If'
-	clauses: IfClause[]
-	elseBody: StatementNode[] | null
-	redirections: RedirectionNode[]
+  type: "If";
+  clauses: IfClause[];
+  elseBody: StatementNode[] | null;
+  redirections: RedirectionNode[];
 }
 
 export interface IfClause {
-	condition: StatementNode[]
-	body: StatementNode[]
+  condition: StatementNode[];
+  body: StatementNode[];
 }
 
 /** for loop: for VAR in WORDS; do ...; done */
 export interface ForNode extends ASTNode {
-	type: 'For'
-	variable: string
-	/** Words to iterate over (null = "$@") */
-	words: WordNode[] | null
-	body: StatementNode[]
-	redirections: RedirectionNode[]
+  type: "For";
+  variable: string;
+  /** Words to iterate over (null = "$@") */
+  words: WordNode[] | null;
+  body: StatementNode[];
+  redirections: RedirectionNode[];
 }
 
 /** C-style for loop: for ((init; cond; step)); do ...; done */
 export interface CStyleForNode extends ASTNode {
-	type: 'CStyleFor'
-	init: ArithmeticExpressionNode | null
-	condition: ArithmeticExpressionNode | null
-	update: ArithmeticExpressionNode | null
-	body: StatementNode[]
-	redirections: RedirectionNode[]
+  type: "CStyleFor";
+  init: ArithmeticExpressionNode | null;
+  condition: ArithmeticExpressionNode | null;
+  update: ArithmeticExpressionNode | null;
+  body: StatementNode[];
+  redirections: RedirectionNode[];
 }
 
 /** while loop */
 export interface WhileNode extends ASTNode {
-	type: 'While'
-	condition: StatementNode[]
-	body: StatementNode[]
-	redirections: RedirectionNode[]
+  type: "While";
+  condition: StatementNode[];
+  body: StatementNode[];
+  redirections: RedirectionNode[];
 }
 
 /** until loop */
 export interface UntilNode extends ASTNode {
-	type: 'Until'
-	condition: StatementNode[]
-	body: StatementNode[]
-	redirections: RedirectionNode[]
+  type: "Until";
+  condition: StatementNode[];
+  body: StatementNode[];
+  redirections: RedirectionNode[];
 }
 
 /** case statement */
 export interface CaseNode extends ASTNode {
-	type: 'Case'
-	word: WordNode
-	items: CaseItemNode[]
-	redirections: RedirectionNode[]
+  type: "Case";
+  word: WordNode;
+  items: CaseItemNode[];
+  redirections: RedirectionNode[];
 }
 
 export interface CaseItemNode extends ASTNode {
-	type: 'CaseItem'
-	patterns: WordNode[]
-	body: StatementNode[]
-	/** Terminator: ";;" | ";&" | ";;&" */
-	terminator: ';;' | ';&' | ';;&'
+  type: "CaseItem";
+  patterns: WordNode[];
+  body: StatementNode[];
+  /** Terminator: ";;" | ";&" | ";;&" */
+  terminator: ";;" | ";&" | ";;&";
 }
 
 /** Subshell: ( ... ) */
 export interface SubshellNode extends ASTNode {
-	type: 'Subshell'
-	body: StatementNode[]
-	redirections: RedirectionNode[]
+  type: "Subshell";
+  body: StatementNode[];
+  redirections: RedirectionNode[];
 }
 
 /** Command group: { ...; } */
 export interface GroupNode extends ASTNode {
-	type: 'Group'
-	body: StatementNode[]
-	redirections: RedirectionNode[]
+  type: "Group";
+  body: StatementNode[];
+  redirections: RedirectionNode[];
 }
 
 /** Arithmetic command: (( expr )) */
 export interface ArithmeticCommandNode extends ASTNode {
-	type: 'ArithmeticCommand'
-	expression: ArithmeticExpressionNode
-	redirections: RedirectionNode[]
+  type: "ArithmeticCommand";
+  expression: ArithmeticExpressionNode;
+  redirections: RedirectionNode[];
 }
 
 /** Conditional command: [[ expr ]] */
 export interface ConditionalCommandNode extends ASTNode {
-	type: 'ConditionalCommand'
-	expression: ConditionalExpressionNode
-	redirections: RedirectionNode[]
+  type: "ConditionalCommand";
+  expression: ConditionalExpressionNode;
+  redirections: RedirectionNode[];
 }
 
 // =============================================================================
@@ -202,10 +202,10 @@ export interface ConditionalCommandNode extends ASTNode {
 
 /** Function definition */
 export interface FunctionDefNode extends ASTNode {
-	type: 'FunctionDef'
-	name: string
-	body: CompoundCommandNode
-	redirections: RedirectionNode[]
+  type: "FunctionDef";
+  name: string;
+  body: CompoundCommandNode;
+  redirections: RedirectionNode[];
 }
 
 // =============================================================================
@@ -214,13 +214,13 @@ export interface FunctionDefNode extends ASTNode {
 
 /** Variable assignment: VAR=value or VAR+=value */
 export interface AssignmentNode extends ASTNode {
-	type: 'Assignment'
-	name: string
-	value: WordNode | null
-	/** Append mode: VAR+=value */
-	append: boolean
-	/** Array assignment: VAR=(a b c) */
-	array: WordNode[] | null
+  type: "Assignment";
+  name: string;
+  value: WordNode | null;
+  /** Append mode: VAR+=value */
+  append: boolean;
+  /** Array assignment: VAR=(a b c) */
+  array: WordNode[] | null;
 }
 
 // =============================================================================
@@ -229,36 +229,36 @@ export interface AssignmentNode extends ASTNode {
 
 /** I/O redirection */
 export interface RedirectionNode extends ASTNode {
-	type: 'Redirection'
-	/** File descriptor (default depends on operator) */
-	fd: number | null
-	operator: RedirectionOperator
-	target: WordNode | HereDocNode
+  type: "Redirection";
+  /** File descriptor (default depends on operator) */
+  fd: number | null;
+  operator: RedirectionOperator;
+  target: WordNode | HereDocNode;
 }
 
 export type RedirectionOperator =
-	| '<' // Input
-	| '>' // Output (truncate)
-	| '>>' // Output (append)
-	| '>&' // Duplicate output fd
-	| '<&' // Duplicate input fd
-	| '<>' // Open for read/write
-	| '>|' // Output (clobber)
-	| '&>' // Redirect stdout and stderr
-	| '&>>' // Append stdout and stderr
-	| '<<<' // Here-string
-	| '<<' // Here-document
-	| '<<-' // Here-document (strip tabs)
+  | "<" // Input
+  | ">" // Output (truncate)
+  | ">>" // Output (append)
+  | ">&" // Duplicate output fd
+  | "<&" // Duplicate input fd
+  | "<>" // Open for read/write
+  | ">|" // Output (clobber)
+  | "&>" // Redirect stdout and stderr
+  | "&>>" // Append stdout and stderr
+  | "<<<" // Here-string
+  | "<<" // Here-document
+  | "<<-"; // Here-document (strip tabs)
 
 /** Here document */
 export interface HereDocNode extends ASTNode {
-	type: 'HereDoc'
-	delimiter: string
-	content: WordNode
-	/** Strip leading tabs (<<- vs <<) */
-	stripTabs: boolean
-	/** Quoted delimiter means no expansion */
-	quoted: boolean
+  type: "HereDoc";
+  delimiter: string;
+  content: WordNode;
+  /** Strip leading tabs (<<- vs <<) */
+  stripTabs: boolean;
+  /** Quoted delimiter means no expansion */
+  quoted: boolean;
 }
 
 // =============================================================================
@@ -270,46 +270,46 @@ export interface HereDocNode extends ASTNode {
  * After expansion, it may produce zero, one, or multiple strings.
  */
 export interface WordNode extends ASTNode {
-	type: 'Word'
-	parts: WordPart[]
+  type: "Word";
+  parts: WordPart[];
 }
 
 /** Parts that can make up a word */
 export type WordPart =
-	| LiteralPart
-	| SingleQuotedPart
-	| DoubleQuotedPart
-	| EscapedPart
-	| ParameterExpansionPart
-	| CommandSubstitutionPart
-	| ArithmeticExpansionPart
-	| ProcessSubstitutionPart
-	| BraceExpansionPart
-	| TildeExpansionPart
-	| GlobPart
+  | LiteralPart
+  | SingleQuotedPart
+  | DoubleQuotedPart
+  | EscapedPart
+  | ParameterExpansionPart
+  | CommandSubstitutionPart
+  | ArithmeticExpansionPart
+  | ProcessSubstitutionPart
+  | BraceExpansionPart
+  | TildeExpansionPart
+  | GlobPart;
 
 /** Literal text (no special meaning) */
 export interface LiteralPart extends ASTNode {
-	type: 'Literal'
-	value: string
+  type: "Literal";
+  value: string;
 }
 
 /** Single-quoted string: 'literal' */
 export interface SingleQuotedPart extends ASTNode {
-	type: 'SingleQuoted'
-	value: string
+  type: "SingleQuoted";
+  value: string;
 }
 
 /** Double-quoted string: "with $expansion" */
 export interface DoubleQuotedPart extends ASTNode {
-	type: 'DoubleQuoted'
-	parts: WordPart[]
+  type: "DoubleQuoted";
+  parts: WordPart[];
 }
 
 /** Escaped character: \x */
 export interface EscapedPart extends ASTNode {
-	type: 'Escaped'
-	value: string
+  type: "Escaped";
+  value: string;
 }
 
 // =============================================================================
@@ -318,132 +318,132 @@ export interface EscapedPart extends ASTNode {
 
 /** Parameter/variable expansion: $VAR or ${VAR...} */
 export interface ParameterExpansionPart extends ASTNode {
-	type: 'ParameterExpansion'
-	parameter: string
-	/** Expansion operation */
-	operation: ParameterOperation | null
+  type: "ParameterExpansion";
+  parameter: string;
+  /** Expansion operation */
+  operation: ParameterOperation | null;
 }
 
 export type ParameterOperation =
-	| DefaultValueOp
-	| AssignDefaultOp
-	| ErrorIfUnsetOp
-	| UseAlternativeOp
-	| LengthOp
-	| LengthSliceErrorOp
-	| SubstringOp
-	| PatternRemovalOp
-	| PatternReplacementOp
-	| CaseModificationOp
-	| TransformOp
-	| IndirectionOp
-	| ArrayKeysOp
-	| VarNamePrefixOp
+  | DefaultValueOp
+  | AssignDefaultOp
+  | ErrorIfUnsetOp
+  | UseAlternativeOp
+  | LengthOp
+  | LengthSliceErrorOp
+  | SubstringOp
+  | PatternRemovalOp
+  | PatternReplacementOp
+  | CaseModificationOp
+  | TransformOp
+  | IndirectionOp
+  | ArrayKeysOp
+  | VarNamePrefixOp;
 
 /** ${#VAR:...} - invalid syntax, length cannot have substring */
 export interface LengthSliceErrorOp {
-	type: 'LengthSliceError'
+  type: "LengthSliceError";
 }
 
 /** ${VAR:-default} or ${VAR-default} */
 export interface DefaultValueOp {
-	type: 'DefaultValue'
-	word: WordNode
-	checkEmpty: boolean // : present = check empty too
+  type: "DefaultValue";
+  word: WordNode;
+  checkEmpty: boolean; // : present = check empty too
 }
 
 /** ${VAR:=default} or ${VAR=default} */
 export interface AssignDefaultOp {
-	type: 'AssignDefault'
-	word: WordNode
-	checkEmpty: boolean
+  type: "AssignDefault";
+  word: WordNode;
+  checkEmpty: boolean;
 }
 
 /** ${VAR:?error} or ${VAR?error} */
 export interface ErrorIfUnsetOp {
-	type: 'ErrorIfUnset'
-	word: WordNode | null
-	checkEmpty: boolean
+  type: "ErrorIfUnset";
+  word: WordNode | null;
+  checkEmpty: boolean;
 }
 
 /** ${VAR:+alternative} or ${VAR+alternative} */
 export interface UseAlternativeOp {
-	type: 'UseAlternative'
-	word: WordNode
-	checkEmpty: boolean
+  type: "UseAlternative";
+  word: WordNode;
+  checkEmpty: boolean;
 }
 
 /** ${#VAR} */
 export interface LengthOp {
-	type: 'Length'
+  type: "Length";
 }
 
 /** ${VAR:offset} or ${VAR:offset:length} */
 export interface SubstringOp {
-	type: 'Substring'
-	offset: ArithmeticExpressionNode
-	length: ArithmeticExpressionNode | null
+  type: "Substring";
+  offset: ArithmeticExpressionNode;
+  length: ArithmeticExpressionNode | null;
 }
 
 /** ${VAR#pattern}, ${VAR##pattern}, ${VAR%pattern}, ${VAR%%pattern} */
 export interface PatternRemovalOp {
-	type: 'PatternRemoval'
-	pattern: WordNode
-	/** "prefix" = # or ##, "suffix" = % or %% */
-	side: 'prefix' | 'suffix'
-	/** Greedy (## or %%) vs non-greedy (# or %) */
-	greedy: boolean
+  type: "PatternRemoval";
+  pattern: WordNode;
+  /** "prefix" = # or ##, "suffix" = % or %% */
+  side: "prefix" | "suffix";
+  /** Greedy (## or %%) vs non-greedy (# or %) */
+  greedy: boolean;
 }
 
 /** ${VAR/pattern/replacement} or ${VAR//pattern/replacement} */
 export interface PatternReplacementOp {
-	type: 'PatternReplacement'
-	pattern: WordNode
-	replacement: WordNode | null
-	/** Replace all occurrences */
-	all: boolean
-	/** Match at start (#) or end (%) only */
-	anchor: 'start' | 'end' | null
+  type: "PatternReplacement";
+  pattern: WordNode;
+  replacement: WordNode | null;
+  /** Replace all occurrences */
+  all: boolean;
+  /** Match at start (#) or end (%) only */
+  anchor: "start" | "end" | null;
 }
 
 /** ${VAR^}, ${VAR^^}, ${VAR,}, ${VAR,,} */
 export interface CaseModificationOp {
-	type: 'CaseModification'
-	/** "upper" = ^ or ^^, "lower" = , or ,, */
-	direction: 'upper' | 'lower'
-	/** Apply to all characters */
-	all: boolean
-	pattern: WordNode | null
+  type: "CaseModification";
+  /** "upper" = ^ or ^^, "lower" = , or ,, */
+  direction: "upper" | "lower";
+  /** Apply to all characters */
+  all: boolean;
+  pattern: WordNode | null;
 }
 
 /** ${var@Q}, ${var@P}, etc. - parameter transformation */
 export interface TransformOp {
-	type: 'Transform'
-	/** Q=quote, P=prompt, a=attributes, A=assignment, E=escape, K=keys */
-	operator: 'Q' | 'P' | 'a' | 'A' | 'E' | 'K'
+  type: "Transform";
+  /** Q=quote, P=prompt, a=attributes, A=assignment, E=escape, K=keys */
+  operator: "Q" | "P" | "a" | "A" | "E" | "K";
 }
 
 /** ${!VAR} - indirect expansion */
 export interface IndirectionOp {
-	type: 'Indirection'
+  type: "Indirection";
 }
 
 /** ${!arr[@]} or ${!arr[*]} - array keys/indices */
 export interface ArrayKeysOp {
-	type: 'ArrayKeys'
-	/** The array name (without subscript) */
-	array: string
-	/** true if [*] was used instead of [@] */
-	star: boolean
+  type: "ArrayKeys";
+  /** The array name (without subscript) */
+  array: string;
+  /** true if [*] was used instead of [@] */
+  star: boolean;
 }
 
 /** ${!prefix*} or ${!prefix@} - list variable names with prefix */
 export interface VarNamePrefixOp {
-	type: 'VarNamePrefix'
-	/** The prefix to match */
-	prefix: string
-	/** true if * was used instead of @ */
-	star: boolean
+  type: "VarNamePrefix";
+  /** The prefix to match */
+  prefix: string;
+  /** true if * was used instead of @ */
+  star: boolean;
 }
 
 // =============================================================================
@@ -452,10 +452,10 @@ export interface VarNamePrefixOp {
 
 /** Command substitution: $(cmd) or `cmd` */
 export interface CommandSubstitutionPart extends ASTNode {
-	type: 'CommandSubstitution'
-	body: ScriptNode
-	/** Legacy backtick syntax */
-	legacy: boolean
+  type: "CommandSubstitution";
+  body: ScriptNode;
+  /** Legacy backtick syntax */
+  legacy: boolean;
 }
 
 // =============================================================================
@@ -464,173 +464,173 @@ export interface CommandSubstitutionPart extends ASTNode {
 
 /** Arithmetic expansion: $((expr)) */
 export interface ArithmeticExpansionPart extends ASTNode {
-	type: 'ArithmeticExpansion'
-	expression: ArithmeticExpressionNode
+  type: "ArithmeticExpansion";
+  expression: ArithmeticExpressionNode;
 }
 
 /** Arithmetic expression (for $((...)) and ((...))) */
 export interface ArithmeticExpressionNode extends ASTNode {
-	type: 'ArithmeticExpression'
-	expression: ArithExpr
+  type: "ArithmeticExpression";
+  expression: ArithExpr;
 }
 
 export type ArithExpr =
-	| ArithNumberNode
-	| ArithVariableNode
-	| ArithBinaryNode
-	| ArithUnaryNode
-	| ArithTernaryNode
-	| ArithAssignmentNode
-	| ArithGroupNode
-	| ArithNestedNode
-	| ArithCommandSubstNode
-	| ArithBracedExpansionNode
-	| ArithArrayElementNode
-	| ArithDynamicBaseNode
-	| ArithDynamicNumberNode
-	| ArithConcatNode
-	| ArithDoubleSubscriptNode
-	| ArithNumberSubscriptNode
+  | ArithNumberNode
+  | ArithVariableNode
+  | ArithBinaryNode
+  | ArithUnaryNode
+  | ArithTernaryNode
+  | ArithAssignmentNode
+  | ArithGroupNode
+  | ArithNestedNode
+  | ArithCommandSubstNode
+  | ArithBracedExpansionNode
+  | ArithArrayElementNode
+  | ArithDynamicBaseNode
+  | ArithDynamicNumberNode
+  | ArithConcatNode
+  | ArithDoubleSubscriptNode
+  | ArithNumberSubscriptNode;
 
 export interface ArithBracedExpansionNode extends ASTNode {
-	type: 'ArithBracedExpansion'
-	content: string // The content inside ${...}, e.g., "j:-5"
+  type: "ArithBracedExpansion";
+  content: string; // The content inside ${...}, e.g., "j:-5"
 }
 
 /** Dynamic base constant: ${base}#value where base is expanded at runtime */
 export interface ArithDynamicBaseNode extends ASTNode {
-	type: 'ArithDynamicBase'
-	baseExpr: string // The variable content (e.g., "base" from ${base})
-	value: string // The value after # (e.g., "a" from ${base}#a)
+  type: "ArithDynamicBase";
+  baseExpr: string; // The variable content (e.g., "base" from ${base})
+  value: string; // The value after # (e.g., "a" from ${base}#a)
 }
 
 /** Dynamic number prefix: ${zero}11 or ${zero}xAB for dynamic octal/hex */
 export interface ArithDynamicNumberNode extends ASTNode {
-	type: 'ArithDynamicNumber'
-	prefix: string // The variable content (e.g., "zero" from ${zero})
-	suffix: string // The suffix (e.g., "11" or "xAB")
+  type: "ArithDynamicNumber";
+  prefix: string; // The variable content (e.g., "zero" from ${zero})
+  suffix: string; // The suffix (e.g., "11" or "xAB")
 }
 
 /** Concatenation of multiple parts forming a single numeric value */
 export interface ArithConcatNode extends ASTNode {
-	type: 'ArithConcat'
-	parts: ArithExpr[] // Parts to concatenate (e.g., [$(echo 1), ${x:-3}] → "13")
+  type: "ArithConcat";
+  parts: ArithExpr[]; // Parts to concatenate (e.g., [$(echo 1), ${x:-3}] → "13")
 }
 
 export interface ArithArrayElementNode extends ASTNode {
-	type: 'ArithArrayElement'
-	array: string // The array name
-	/** The index expression (for numeric indices) */
-	index?: ArithExpr
-	/** For associative arrays: literal string key (e.g., 'key' or "key") */
-	stringKey?: string
+  type: "ArithArrayElement";
+  array: string; // The array name
+  /** The index expression (for numeric indices) */
+  index?: ArithExpr;
+  /** For associative arrays: literal string key (e.g., 'key' or "key") */
+  stringKey?: string;
 }
 
 /** Invalid double subscript node (e.g., a[1][1]) - evaluated to error at runtime */
 export interface ArithDoubleSubscriptNode extends ASTNode {
-	type: 'ArithDoubleSubscript'
-	array: string // The array name
-	index: ArithExpr // The first index expression
+  type: "ArithDoubleSubscript";
+  array: string; // The array name
+  index: ArithExpr; // The first index expression
 }
 
 /** Invalid number subscript node (e.g., 1[2]) - evaluated to error at runtime */
 export interface ArithNumberSubscriptNode extends ASTNode {
-	type: 'ArithNumberSubscript'
-	number: string // The number that was attempted to be subscripted
-	errorToken: string // The error token for the error message
+  type: "ArithNumberSubscript";
+  number: string; // The number that was attempted to be subscripted
+  errorToken: string; // The error token for the error message
 }
 
 export interface ArithNumberNode extends ASTNode {
-	type: 'ArithNumber'
-	value: number
+  type: "ArithNumber";
+  value: number;
 }
 
 export interface ArithVariableNode extends ASTNode {
-	type: 'ArithVariable'
-	name: string
+  type: "ArithVariable";
+  name: string;
 }
 
 export interface ArithBinaryNode extends ASTNode {
-	type: 'ArithBinary'
-	operator:
-		| '+'
-		| '-'
-		| '*'
-		| '/'
-		| '%'
-		| '**'
-		| '<<'
-		| '>>'
-		| '<'
-		| '<='
-		| '>'
-		| '>='
-		| '=='
-		| '!='
-		| '&'
-		| '|'
-		| '^'
-		| '&&'
-		| '||'
-		| ','
-	left: ArithExpr
-	right: ArithExpr
+  type: "ArithBinary";
+  operator:
+    | "+"
+    | "-"
+    | "*"
+    | "/"
+    | "%"
+    | "**"
+    | "<<"
+    | ">>"
+    | "<"
+    | "<="
+    | ">"
+    | ">="
+    | "=="
+    | "!="
+    | "&"
+    | "|"
+    | "^"
+    | "&&"
+    | "||"
+    | ",";
+  left: ArithExpr;
+  right: ArithExpr;
 }
 
 export interface ArithUnaryNode extends ASTNode {
-	type: 'ArithUnary'
-	operator: '-' | '+' | '!' | '~' | '++' | '--'
-	operand: ArithExpr
-	/** Prefix vs postfix for ++ and -- */
-	prefix: boolean
+  type: "ArithUnary";
+  operator: "-" | "+" | "!" | "~" | "++" | "--";
+  operand: ArithExpr;
+  /** Prefix vs postfix for ++ and -- */
+  prefix: boolean;
 }
 
 export interface ArithTernaryNode extends ASTNode {
-	type: 'ArithTernary'
-	condition: ArithExpr
-	consequent: ArithExpr
-	alternate: ArithExpr
+  type: "ArithTernary";
+  condition: ArithExpr;
+  consequent: ArithExpr;
+  alternate: ArithExpr;
 }
 
 export type ArithAssignmentOperator =
-	| '='
-	| '+='
-	| '-='
-	| '*='
-	| '/='
-	| '%='
-	| '<<='
-	| '>>='
-	| '&='
-	| '|='
-	| '^='
+  | "="
+  | "+="
+  | "-="
+  | "*="
+  | "/="
+  | "%="
+  | "<<="
+  | ">>="
+  | "&="
+  | "|="
+  | "^=";
 
 export interface ArithAssignmentNode extends ASTNode {
-	type: 'ArithAssignment'
-	operator: ArithAssignmentOperator
-	variable: string
-	/** For array element assignment: the subscript expression */
-	subscript?: ArithExpr
-	/** For associative arrays: literal string key (e.g., 'key' or "key") */
-	stringKey?: string
-	value: ArithExpr
+  type: "ArithAssignment";
+  operator: ArithAssignmentOperator;
+  variable: string;
+  /** For array element assignment: the subscript expression */
+  subscript?: ArithExpr;
+  /** For associative arrays: literal string key (e.g., 'key' or "key") */
+  stringKey?: string;
+  value: ArithExpr;
 }
 
 export interface ArithGroupNode extends ASTNode {
-	type: 'ArithGroup'
-	expression: ArithExpr
+  type: "ArithGroup";
+  expression: ArithExpr;
 }
 
 /** Nested arithmetic expansion within arithmetic context: $((expr)) */
 export interface ArithNestedNode extends ASTNode {
-	type: 'ArithNested'
-	expression: ArithExpr
+  type: "ArithNested";
+  expression: ArithExpr;
 }
 
 /** Command substitution within arithmetic context: $(cmd) or `cmd` */
 export interface ArithCommandSubstNode extends ASTNode {
-	type: 'ArithCommandSubst'
-	command: string
+  type: "ArithCommandSubst";
+  command: string;
 }
 
 // =============================================================================
@@ -639,9 +639,9 @@ export interface ArithCommandSubstNode extends ASTNode {
 
 /** Process substitution: <(cmd) or >(cmd) */
 export interface ProcessSubstitutionPart extends ASTNode {
-	type: 'ProcessSubstitution'
-	body: ScriptNode
-	direction: 'input' | 'output' // <(...) vs >(...)
+  type: "ProcessSubstitution";
+  body: ScriptNode;
+  direction: "input" | "output"; // <(...) vs >(...)
 }
 
 // =============================================================================
@@ -650,26 +650,26 @@ export interface ProcessSubstitutionPart extends ASTNode {
 
 /** Brace expansion: {a,b,c} or {1..10} */
 export interface BraceExpansionPart extends ASTNode {
-	type: 'BraceExpansion'
-	items: BraceItem[]
+  type: "BraceExpansion";
+  items: BraceItem[];
 }
 
 export type BraceItem =
-	| { type: 'Word'; word: WordNode }
-	| {
-			type: 'Range'
-			start: string | number
-			end: string | number
-			step?: number
-			// Original string form for zero-padding support
-			startStr?: string
-			endStr?: string
-	  }
+  | { type: "Word"; word: WordNode }
+  | {
+      type: "Range";
+      start: string | number;
+      end: string | number;
+      step?: number;
+      // Original string form for zero-padding support
+      startStr?: string;
+      endStr?: string;
+    };
 
 /** Tilde expansion: ~ or ~user */
 export interface TildeExpansionPart extends ASTNode {
-	type: 'TildeExpansion'
-	user: string | null // null = current user
+  type: "TildeExpansion";
+  user: string | null; // null = current user
 }
 
 // =============================================================================
@@ -678,8 +678,8 @@ export interface TildeExpansionPart extends ASTNode {
 
 /** Glob pattern part (expanded during pathname expansion) */
 export interface GlobPart extends ASTNode {
-	type: 'Glob'
-	pattern: string
+  type: "Glob";
+  pattern: string;
 }
 
 // =============================================================================
@@ -687,97 +687,97 @@ export interface GlobPart extends ASTNode {
 // =============================================================================
 
 export type ConditionalExpressionNode =
-	| CondBinaryNode
-	| CondUnaryNode
-	| CondNotNode
-	| CondAndNode
-	| CondOrNode
-	| CondGroupNode
-	| CondWordNode
+  | CondBinaryNode
+  | CondUnaryNode
+  | CondNotNode
+  | CondAndNode
+  | CondOrNode
+  | CondGroupNode
+  | CondWordNode;
 
 export type CondBinaryOperator =
-	| '='
-	| '=='
-	| '!='
-	| '=~'
-	| '<'
-	| '>'
-	| '-eq'
-	| '-ne'
-	| '-lt'
-	| '-le'
-	| '-gt'
-	| '-ge'
-	| '-nt'
-	| '-ot'
-	| '-ef'
+  | "="
+  | "=="
+  | "!="
+  | "=~"
+  | "<"
+  | ">"
+  | "-eq"
+  | "-ne"
+  | "-lt"
+  | "-le"
+  | "-gt"
+  | "-ge"
+  | "-nt"
+  | "-ot"
+  | "-ef";
 
 export interface CondBinaryNode extends ASTNode {
-	type: 'CondBinary'
-	operator: CondBinaryOperator
-	left: WordNode
-	right: WordNode
+  type: "CondBinary";
+  operator: CondBinaryOperator;
+  left: WordNode;
+  right: WordNode;
 }
 
 export type CondUnaryOperator =
-	| '-a'
-	| '-b'
-	| '-c'
-	| '-d'
-	| '-e'
-	| '-f'
-	| '-g'
-	| '-h'
-	| '-k'
-	| '-p'
-	| '-r'
-	| '-s'
-	| '-t'
-	| '-u'
-	| '-w'
-	| '-x'
-	| '-G'
-	| '-L'
-	| '-N'
-	| '-O'
-	| '-S'
-	| '-z'
-	| '-n'
-	| '-o'
-	| '-v'
-	| '-R'
+  | "-a"
+  | "-b"
+  | "-c"
+  | "-d"
+  | "-e"
+  | "-f"
+  | "-g"
+  | "-h"
+  | "-k"
+  | "-p"
+  | "-r"
+  | "-s"
+  | "-t"
+  | "-u"
+  | "-w"
+  | "-x"
+  | "-G"
+  | "-L"
+  | "-N"
+  | "-O"
+  | "-S"
+  | "-z"
+  | "-n"
+  | "-o"
+  | "-v"
+  | "-R";
 
 export interface CondUnaryNode extends ASTNode {
-	type: 'CondUnary'
-	operator: CondUnaryOperator
-	operand: WordNode
+  type: "CondUnary";
+  operator: CondUnaryOperator;
+  operand: WordNode;
 }
 
 export interface CondNotNode extends ASTNode {
-	type: 'CondNot'
-	operand: ConditionalExpressionNode
+  type: "CondNot";
+  operand: ConditionalExpressionNode;
 }
 
 export interface CondAndNode extends ASTNode {
-	type: 'CondAnd'
-	left: ConditionalExpressionNode
-	right: ConditionalExpressionNode
+  type: "CondAnd";
+  left: ConditionalExpressionNode;
+  right: ConditionalExpressionNode;
 }
 
 export interface CondOrNode extends ASTNode {
-	type: 'CondOr'
-	left: ConditionalExpressionNode
-	right: ConditionalExpressionNode
+  type: "CondOr";
+  left: ConditionalExpressionNode;
+  right: ConditionalExpressionNode;
 }
 
 export interface CondGroupNode extends ASTNode {
-	type: 'CondGroup'
-	expression: ConditionalExpressionNode
+  type: "CondGroup";
+  expression: ConditionalExpressionNode;
 }
 
 export interface CondWordNode extends ASTNode {
-	type: 'CondWord'
-	word: WordNode
+  type: "CondWord";
+  word: WordNode;
 }
 
 // =============================================================================
@@ -785,179 +785,179 @@ export interface CondWordNode extends ASTNode {
 // =============================================================================
 
 export const AST = {
-	script(statements: StatementNode[]): ScriptNode {
-		return { type: 'Script', statements }
-	},
+  script(statements: StatementNode[]): ScriptNode {
+    return { type: "Script", statements };
+  },
 
-	statement(
-		pipelines: PipelineNode[],
-		operators: ('&&' | '||' | ';')[] = [],
-		background = false
-	): StatementNode {
-		return { type: 'Statement', pipelines, operators, background }
-	},
+  statement(
+    pipelines: PipelineNode[],
+    operators: ("&&" | "||" | ";")[] = [],
+    background = false,
+  ): StatementNode {
+    return { type: "Statement", pipelines, operators, background };
+  },
 
-	pipeline(commands: CommandNode[], negated = false): PipelineNode {
-		return { type: 'Pipeline', commands, negated }
-	},
+  pipeline(commands: CommandNode[], negated = false): PipelineNode {
+    return { type: "Pipeline", commands, negated };
+  },
 
-	simpleCommand(
-		name: WordNode | null,
-		args: WordNode[] = [],
-		assignments: AssignmentNode[] = [],
-		redirections: RedirectionNode[] = []
-	): SimpleCommandNode {
-		return { type: 'SimpleCommand', name, args, assignments, redirections }
-	},
+  simpleCommand(
+    name: WordNode | null,
+    args: WordNode[] = [],
+    assignments: AssignmentNode[] = [],
+    redirections: RedirectionNode[] = [],
+  ): SimpleCommandNode {
+    return { type: "SimpleCommand", name, args, assignments, redirections };
+  },
 
-	word(parts: WordPart[]): WordNode {
-		return { type: 'Word', parts }
-	},
+  word(parts: WordPart[]): WordNode {
+    return { type: "Word", parts };
+  },
 
-	literal(value: string): LiteralPart {
-		return { type: 'Literal', value }
-	},
+  literal(value: string): LiteralPart {
+    return { type: "Literal", value };
+  },
 
-	singleQuoted(value: string): SingleQuotedPart {
-		return { type: 'SingleQuoted', value }
-	},
+  singleQuoted(value: string): SingleQuotedPart {
+    return { type: "SingleQuoted", value };
+  },
 
-	doubleQuoted(parts: WordPart[]): DoubleQuotedPart {
-		return { type: 'DoubleQuoted', parts }
-	},
+  doubleQuoted(parts: WordPart[]): DoubleQuotedPart {
+    return { type: "DoubleQuoted", parts };
+  },
 
-	escaped(value: string): EscapedPart {
-		return { type: 'Escaped', value }
-	},
+  escaped(value: string): EscapedPart {
+    return { type: "Escaped", value };
+  },
 
-	parameterExpansion(
-		parameter: string,
-		operation: ParameterOperation | null = null
-	): ParameterExpansionPart {
-		return { type: 'ParameterExpansion', parameter, operation }
-	},
+  parameterExpansion(
+    parameter: string,
+    operation: ParameterOperation | null = null,
+  ): ParameterExpansionPart {
+    return { type: "ParameterExpansion", parameter, operation };
+  },
 
-	commandSubstitution(
-		body: ScriptNode,
-		legacy = false
-	): CommandSubstitutionPart {
-		return { type: 'CommandSubstitution', body, legacy }
-	},
+  commandSubstitution(
+    body: ScriptNode,
+    legacy = false,
+  ): CommandSubstitutionPart {
+    return { type: "CommandSubstitution", body, legacy };
+  },
 
-	arithmeticExpansion(
-		expression: ArithmeticExpressionNode
-	): ArithmeticExpansionPart {
-		return { type: 'ArithmeticExpansion', expression }
-	},
+  arithmeticExpansion(
+    expression: ArithmeticExpressionNode,
+  ): ArithmeticExpansionPart {
+    return { type: "ArithmeticExpansion", expression };
+  },
 
-	assignment(
-		name: string,
-		value: WordNode | null,
-		append = false,
-		array: WordNode[] | null = null
-	): AssignmentNode {
-		return { type: 'Assignment', name, value, append, array }
-	},
+  assignment(
+    name: string,
+    value: WordNode | null,
+    append = false,
+    array: WordNode[] | null = null,
+  ): AssignmentNode {
+    return { type: "Assignment", name, value, append, array };
+  },
 
-	redirection(
-		operator: RedirectionOperator,
-		target: WordNode | HereDocNode,
-		fd: number | null = null
-	): RedirectionNode {
-		return { type: 'Redirection', fd, operator, target }
-	},
+  redirection(
+    operator: RedirectionOperator,
+    target: WordNode | HereDocNode,
+    fd: number | null = null,
+  ): RedirectionNode {
+    return { type: "Redirection", fd, operator, target };
+  },
 
-	hereDoc(
-		delimiter: string,
-		content: WordNode,
-		stripTabs = false,
-		quoted = false
-	): HereDocNode {
-		return { type: 'HereDoc', delimiter, content, stripTabs, quoted }
-	},
+  hereDoc(
+    delimiter: string,
+    content: WordNode,
+    stripTabs = false,
+    quoted = false,
+  ): HereDocNode {
+    return { type: "HereDoc", delimiter, content, stripTabs, quoted };
+  },
 
-	ifNode(
-		clauses: IfClause[],
-		elseBody: StatementNode[] | null = null,
-		redirections: RedirectionNode[] = []
-	): IfNode {
-		return { type: 'If', clauses, elseBody, redirections }
-	},
+  ifNode(
+    clauses: IfClause[],
+    elseBody: StatementNode[] | null = null,
+    redirections: RedirectionNode[] = [],
+  ): IfNode {
+    return { type: "If", clauses, elseBody, redirections };
+  },
 
-	forNode(
-		variable: string,
-		words: WordNode[] | null,
-		body: StatementNode[],
-		redirections: RedirectionNode[] = []
-	): ForNode {
-		return { type: 'For', variable, words, body, redirections }
-	},
+  forNode(
+    variable: string,
+    words: WordNode[] | null,
+    body: StatementNode[],
+    redirections: RedirectionNode[] = [],
+  ): ForNode {
+    return { type: "For", variable, words, body, redirections };
+  },
 
-	whileNode(
-		condition: StatementNode[],
-		body: StatementNode[],
-		redirections: RedirectionNode[] = []
-	): WhileNode {
-		return { type: 'While', condition, body, redirections }
-	},
+  whileNode(
+    condition: StatementNode[],
+    body: StatementNode[],
+    redirections: RedirectionNode[] = [],
+  ): WhileNode {
+    return { type: "While", condition, body, redirections };
+  },
 
-	untilNode(
-		condition: StatementNode[],
-		body: StatementNode[],
-		redirections: RedirectionNode[] = []
-	): UntilNode {
-		return { type: 'Until', condition, body, redirections }
-	},
+  untilNode(
+    condition: StatementNode[],
+    body: StatementNode[],
+    redirections: RedirectionNode[] = [],
+  ): UntilNode {
+    return { type: "Until", condition, body, redirections };
+  },
 
-	caseNode(
-		word: WordNode,
-		items: CaseItemNode[],
-		redirections: RedirectionNode[] = []
-	): CaseNode {
-		return { type: 'Case', word, items, redirections }
-	},
+  caseNode(
+    word: WordNode,
+    items: CaseItemNode[],
+    redirections: RedirectionNode[] = [],
+  ): CaseNode {
+    return { type: "Case", word, items, redirections };
+  },
 
-	caseItem(
-		patterns: WordNode[],
-		body: StatementNode[],
-		terminator: ';;' | ';&' | ';;&' = ';;'
-	): CaseItemNode {
-		return { type: 'CaseItem', patterns, body, terminator }
-	},
+  caseItem(
+    patterns: WordNode[],
+    body: StatementNode[],
+    terminator: ";;" | ";&" | ";;&" = ";;",
+  ): CaseItemNode {
+    return { type: "CaseItem", patterns, body, terminator };
+  },
 
-	subshell(
-		body: StatementNode[],
-		redirections: RedirectionNode[] = []
-	): SubshellNode {
-		return { type: 'Subshell', body, redirections }
-	},
+  subshell(
+    body: StatementNode[],
+    redirections: RedirectionNode[] = [],
+  ): SubshellNode {
+    return { type: "Subshell", body, redirections };
+  },
 
-	group(
-		body: StatementNode[],
-		redirections: RedirectionNode[] = []
-	): GroupNode {
-		return { type: 'Group', body, redirections }
-	},
+  group(
+    body: StatementNode[],
+    redirections: RedirectionNode[] = [],
+  ): GroupNode {
+    return { type: "Group", body, redirections };
+  },
 
-	functionDef(
-		name: string,
-		body: CompoundCommandNode,
-		redirections: RedirectionNode[] = []
-	): FunctionDefNode {
-		return { type: 'FunctionDef', name, body, redirections }
-	},
+  functionDef(
+    name: string,
+    body: CompoundCommandNode,
+    redirections: RedirectionNode[] = [],
+  ): FunctionDefNode {
+    return { type: "FunctionDef", name, body, redirections };
+  },
 
-	conditionalCommand(
-		expression: ConditionalExpressionNode,
-		redirections: RedirectionNode[] = []
-	): ConditionalCommandNode {
-		return { type: 'ConditionalCommand', expression, redirections }
-	},
+  conditionalCommand(
+    expression: ConditionalExpressionNode,
+    redirections: RedirectionNode[] = [],
+  ): ConditionalCommandNode {
+    return { type: "ConditionalCommand", expression, redirections };
+  },
 
-	arithmeticCommand(
-		expression: ArithmeticExpressionNode,
-		redirections: RedirectionNode[] = []
-	): ArithmeticCommandNode {
-		return { type: 'ArithmeticCommand', expression, redirections }
-	},
-}
+  arithmeticCommand(
+    expression: ArithmeticExpressionNode,
+    redirections: RedirectionNode[] = [],
+  ): ArithmeticCommandNode {
+    return { type: "ArithmeticCommand", expression, redirections };
+  },
+};
