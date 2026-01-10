@@ -1,17 +1,17 @@
-import type { Command, ExecResult } from "../../types.js";
+import type { Command, ExecResult } from '../../types.js'
 
 export const trueCommand: Command = {
-  name: "true",
+	name: 'true',
 
-  async execute(): Promise<ExecResult> {
-    return { stdout: "", stderr: "", exitCode: 0 };
-  },
-};
+	async execute(): Promise<ExecResult> {
+		return { stdout: '', stderr: '', exitCode: 0 }
+	},
+}
 
 export const falseCommand: Command = {
-  name: "false",
+	name: 'false',
 
-  async execute(): Promise<ExecResult> {
-    return { stdout: "", stderr: "", exitCode: 1 };
-  },
-};
+	async execute(): Promise<ExecResult> {
+		return { stdout: '', stderr: '', exitCode: 1 }
+	},
+}

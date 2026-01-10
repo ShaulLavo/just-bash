@@ -5,13 +5,13 @@
  * Used by if, while, and until loops.
  */
 
-import type { StatementNode } from "../../ast/types.js";
-import type { InterpreterContext } from "../types.js";
+import type { StatementNode } from '../../ast/types.js'
+import type { InterpreterContext } from '../types.js'
 
 export interface ConditionResult {
-  stdout: string;
-  stderr: string;
-  exitCode: number;
+	stdout: string
+	stderr: string
+	exitCode: number
 }
 
 /**
@@ -23,26 +23,26 @@ export interface ConditionResult {
  * @returns Accumulated stdout, stderr, and final exit code
  */
 export async function executeCondition(
-  ctx: InterpreterContext,
-  statements: StatementNode[],
+	ctx: InterpreterContext,
+	statements: StatementNode[]
 ): Promise<ConditionResult> {
-  const savedInCondition = ctx.state.inCondition;
-  ctx.state.inCondition = true;
+	const savedInCondition = ctx.state.inCondition
+	ctx.state.inCondition = true
 
-  let stdout = "";
-  let stderr = "";
-  let exitCode = 0;
+	let stdout = ''
+	let stderr = ''
+	let exitCode = 0
 
-  try {
-    for (const stmt of statements) {
-      const result = await ctx.executeStatement(stmt);
-      stdout += result.stdout;
-      stderr += result.stderr;
-      exitCode = result.exitCode;
-    }
-  } finally {
-    ctx.state.inCondition = savedInCondition;
-  }
+	try {
+		for (const stmt of statements) {
+			const result = await ctx.executeStatement(stmt)
+			stdout += result.stdout
+			stderr += result.stderr
+			exitCode = result.exitCode
+		}
+	} finally {
+		ctx.state.inCondition = savedInCondition
+	}
 
-  return { stdout, stderr, exitCode };
+	return { stdout, stderr, exitCode }
 }

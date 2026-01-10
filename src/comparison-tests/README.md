@@ -31,32 +31,32 @@ RECORD_FIXTURES=force pnpm test:comparison
 
 ```typescript
 // src/comparison-tests/mycommand.comparison.test.ts
-import { afterEach, beforeEach, describe, it } from "vitest";
+import { afterEach, beforeEach, describe, it } from 'vitest'
 import {
-  cleanupTestDir,
-  compareOutputs,
-  createTestDir,
-  setupFiles,
-} from "./test-helpers.js";
+	cleanupTestDir,
+	compareOutputs,
+	createTestDir,
+	setupFiles,
+} from './test-helpers.js'
 
-describe("mycommand - Real Bash Comparison", () => {
-  let testDir: string;
+describe('mycommand - Real Bash Comparison', () => {
+	let testDir: string
 
-  beforeEach(async () => {
-    testDir = await createTestDir();
-  });
+	beforeEach(async () => {
+		testDir = await createTestDir()
+	})
 
-  afterEach(async () => {
-    await cleanupTestDir(testDir);
-  });
+	afterEach(async () => {
+		await cleanupTestDir(testDir)
+	})
 
-  it("should do something", async () => {
-    const env = await setupFiles(testDir, {
-      "input.txt": "hello world\n",
-    });
-    await compareOutputs(env, testDir, "mycommand input.txt");
-  });
-});
+	it('should do something', async () => {
+		const env = await setupFiles(testDir, {
+			'input.txt': 'hello world\n',
+		})
+		await compareOutputs(env, testDir, 'mycommand input.txt')
+	})
+})
 ```
 
 ### 2. Record the fixture
@@ -91,6 +91,7 @@ The fixture system solves platform differences (macOS vs Linux):
 4. Tests then pass on all platforms
 
 Example: `ls -R` outputs differently on macOS vs Linux:
+
 - macOS: `dir\nfile.txt\n...`
 - Linux: `.:\ndir\nfile.txt\n...` (includes ".:" header)
 
@@ -114,10 +115,12 @@ Fixtures that have been manually adjusted for platform-specific behavior should 
 ```
 
 When recording:
+
 - `RECORD_FIXTURES=1` skips locked fixtures and reports them
 - `RECORD_FIXTURES=force` overwrites all fixtures including locked ones
 
 Currently locked fixtures:
+
 - `ls -R` - Uses Linux-style output with ".:" header
 - `cat -n` with multiple files - Uses continuous line numbering (Linux behavior)
 
@@ -129,9 +132,9 @@ Sets up test files in both real filesystem and BashEnv.
 
 ```typescript
 const env = await setupFiles(testDir, {
-  "file.txt": "content",
-  "dir/nested.txt": "nested content",
-});
+	'file.txt': 'content',
+	'dir/nested.txt': 'nested content',
+})
 ```
 
 ### `compareOutputs(env, testDir, command, options?)`
@@ -140,13 +143,13 @@ Compares just-bash output against recorded fixture.
 
 ```typescript
 // Basic usage
-await compareOutputs(env, testDir, "cat file.txt");
+await compareOutputs(env, testDir, 'cat file.txt')
 
 // With options
-await compareOutputs(env, testDir, "wc -l file.txt", {
-  normalizeWhitespace: true,  // For BSD/GNU whitespace differences
-  compareExitCode: false,     // Skip exit code comparison
-});
+await compareOutputs(env, testDir, 'wc -l file.txt', {
+	normalizeWhitespace: true, // For BSD/GNU whitespace differences
+	compareExitCode: false, // Skip exit code comparison
+})
 ```
 
 ### `runRealBash(command, cwd)`
@@ -154,7 +157,7 @@ await compareOutputs(env, testDir, "wc -l file.txt", {
 Runs a command in real bash (for tests that need direct bash access).
 
 ```typescript
-const result = await runRealBash("echo hello", testDir);
+const result = await runRealBash('echo hello', testDir)
 // result: { stdout, stderr, exitCode }
 ```
 
@@ -162,15 +165,15 @@ const result = await runRealBash("echo hello", testDir);
 
 ```json
 {
-  "fixture_id_hash": {
-    "command": "ls -la",
-    "files": {
-      "file.txt": "content"
-    },
-    "stdout": "file.txt\n",
-    "stderr": "",
-    "exitCode": 0
-  }
+	"fixture_id_hash": {
+		"command": "ls -la",
+		"files": {
+			"file.txt": "content"
+		},
+		"stdout": "file.txt\n",
+		"stderr": "",
+		"exitCode": 0
+	}
 }
 ```
 

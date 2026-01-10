@@ -6,79 +6,79 @@
  * - Function calls (with positional parameters and local scopes)
  */
 
-import type { FunctionDefNode } from "../ast/types.js";
-import type { ExecResult } from "../types.js";
-import { ReturnError } from "./errors.js";
-import { OK, result, throwExecutionLimit } from "./helpers/result.js";
-import type { InterpreterContext } from "./types.js";
+import type { FunctionDefNode } from '../ast/types.js'
+import type { ExecResult } from '../types.js'
+import { ReturnError } from './errors.js'
+import { OK, result, throwExecutionLimit } from './helpers/result.js'
+import type { InterpreterContext } from './types.js'
 
 export function executeFunctionDef(
-  ctx: InterpreterContext,
-  node: FunctionDefNode,
+	ctx: InterpreterContext,
+	node: FunctionDefNode
 ): ExecResult {
-  ctx.state.functions.set(node.name, node);
-  return OK;
+	ctx.state.functions.set(node.name, node)
+	return OK
 }
 
 export async function callFunction(
-  ctx: InterpreterContext,
-  func: FunctionDefNode,
-  args: string[],
+	ctx: InterpreterContext,
+	func: FunctionDefNode,
+	args: string[]
 ): Promise<ExecResult> {
-  ctx.state.callDepth++;
-  if (ctx.state.callDepth > ctx.limits.maxCallDepth) {
-    ctx.state.callDepth--;
-    throwExecutionLimit(
-      `${func.name}: maximum recursion depth (${ctx.limits.maxCallDepth}) exceeded, increase executionLimits.maxCallDepth`,
-      "recursion",
-    );
-  }
+	ctx.state.callDepth++
+	if (ctx.state.callDepth > ctx.limits.maxCallDepth) {
+		ctx.state.callDepth--
+		throwExecutionLimit(
+			`${func.name}: maximum recursion depth (${ctx.limits.maxCallDepth}) exceeded, increase executionLimits.maxCallDepth`,
+			'recursion'
+		)
+	}
 
-  ctx.state.localScopes.push(new Map());
+	ctx.state.localScopes.push(new Map())
 
-  const savedPositional: Record<string, string | undefined> = {};
-  for (let i = 0; i < args.length; i++) {
-    savedPositional[String(i + 1)] = ctx.state.env[String(i + 1)];
-    ctx.state.env[String(i + 1)] = args[i];
-  }
-  savedPositional["@"] = ctx.state.env["@"];
-  savedPositional["#"] = ctx.state.env["#"];
-  ctx.state.env["@"] = args.join(" ");
-  ctx.state.env["#"] = String(args.length);
+	const savedPositional: Record<string, string | undefined> = {}
+	for (let i = 0; i < args.length; i++) {
+		savedPositional[String(i + 1)] = ctx.state.env[String(i + 1)]
+		ctx.state.env[String(i + 1)] = args[i]
+	}
+	savedPositional['@'] = ctx.state.env['@']
+	savedPositional['#'] = ctx.state.env['#']
+	ctx.state.env['@'] = args.join(' ')
+	ctx.state.env['#'] = String(args.length)
 
-  const cleanup = (): void => {
-    const localScope = ctx.state.localScopes.pop();
-    if (localScope) {
-      for (const [varName, originalValue] of localScope) {
-        if (originalValue === undefined) {
-          delete ctx.state.env[varName];
-        } else {
-          ctx.state.env[varName] = originalValue;
-        }
-      }
-    }
+	const cleanup = (): void => {
+		const localScope = ctx.state.localScopes.pop()
+		if (localScope) {
+			for (const [varName, originalValue] of localScope) {
+				if (originalValue === undefined) {
+					delete ctx.state.env[varName]
+				} else {
+					ctx.state.env[varName] = originalValue
+				}
+			}
+		}
 
-    for (const [key, value] of Object.entries(savedPositional)) {
-      if (value === undefined) {
-        delete ctx.state.env[key];
-      } else {
-        ctx.state.env[key] = value;
-      }
-    }
+		for (const [key, value] of Object.entries(savedPositional)) {
+			if (value === undefined) {
+				delete ctx.state.env[key]
+			} else {
+				ctx.state.env[key] = value
+			}
+		}
 
-    ctx.state.callDepth--;
-  };
+		ctx.state.callDepth--
+	}
 
-  try {
-    const execResult = await ctx.executeCommand(func.body, "");
-    cleanup();
-    return execResult;
-  } catch (error) {
-    cleanup();
-    // Handle return statement - convert to normal exit with the specified code
-    if (error instanceof ReturnError) {
-      return result(error.stdout, error.stderr, error.exitCode);
-    }
-    throw error;
-  }
+	try {
+		const execResult = await ctx.executeCommand(func.body, '')
+		cleanup()
+		return execResult
+	} catch (error) {
+		cleanup()
+		// Handle return statement - convert to normal exit with the specified code
+		if (error instanceof ReturnError) {
+			return result(error.stdout, error.stderr, error.exitCode)
+		}
+		throw error
+	}
 }

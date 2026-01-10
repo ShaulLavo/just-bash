@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { Bash } from "../Bash.js";
+import { describe, expect, it } from 'vitest'
+import { Bash } from '../Bash.js'
 
 /**
  * Agent Scenario: Feature Implementation Workflow
@@ -16,10 +16,10 @@ import { Bash } from "../Bash.js";
  */
 
 function createEnv(): Bash {
-  return new Bash({
-    files: {
-      // Main BashEnv implementation
-      "/project/src/BashEnv.ts": `import { VirtualFs } from './fs.js';
+	return new Bash({
+		files: {
+			// Main BashEnv implementation
+			'/project/src/BashEnv.ts': `import { VirtualFs } from './fs.js';
 import { Command, CommandContext, ExecResult } from './types.js';
 import { lsCommand } from './commands/ls/ls.js';
 import { findCommand } from './commands/find/find.js';
@@ -52,8 +52,8 @@ export class BashEnv {
 }
 `,
 
-      // Virtual filesystem
-      "/project/src/fs.ts": `export interface FsEntry {
+			// Virtual filesystem
+			'/project/src/fs.ts': `export interface FsEntry {
   type: 'file' | 'directory';
   content?: string;
   mode: number;
@@ -84,8 +84,8 @@ export class VirtualFs {
 }
 `,
 
-      // ls command implementation
-      "/project/src/commands/ls/ls.ts": `import { Command, CommandContext, ExecResult } from '../../types.js';
+			// ls command implementation
+			'/project/src/commands/ls/ls.ts': `import { Command, CommandContext, ExecResult } from '../../types.js';
 
 export const lsCommand: Command = {
   name: 'ls',
@@ -125,8 +125,8 @@ export const lsCommand: Command = {
 };
 `,
 
-      // ls unit tests
-      "/project/src/commands/ls/ls.test.ts": `import { describe, it, expect } from 'vitest';
+			// ls unit tests
+			'/project/src/commands/ls/ls.test.ts': `import { describe, it, expect } from 'vitest';
 import { Bash } from '../../BashEnv.js';
 
 describe('ls command', () => {
@@ -185,8 +185,8 @@ describe('ls command', () => {
 });
 `,
 
-      // find command
-      "/project/src/commands/find/find.ts": `import { Command, CommandContext, ExecResult } from '../../types.js';
+			// find command
+			'/project/src/commands/find/find.ts': `import { Command, CommandContext, ExecResult } from '../../types.js';
 
 export const findCommand: Command = {
   name: 'find',
@@ -212,8 +212,8 @@ export const findCommand: Command = {
 };
 `,
 
-      // Comparison tests
-      "/project/src/comparison-tests/ls.comparison.test.ts": `import { describe, it, beforeEach, afterEach } from 'vitest';
+			// Comparison tests
+			'/project/src/comparison-tests/ls.comparison.test.ts': `import { describe, it, beforeEach, afterEach } from 'vitest';
 import { createTestDir, cleanupTestDir, setupFiles, compareOutputs } from './test-helpers.js';
 
 describe('ls command - Real Bash Comparison', () => {
@@ -265,8 +265,8 @@ describe('ls command - Real Bash Comparison', () => {
 });
 `,
 
-      // grep comparison tests
-      "/project/src/comparison-tests/grep.comparison.test.ts": `import { describe, it, beforeEach, afterEach } from 'vitest';
+			// grep comparison tests
+			'/project/src/comparison-tests/grep.comparison.test.ts': `import { describe, it, beforeEach, afterEach } from 'vitest';
 import { createTestDir, cleanupTestDir, setupFiles, compareOutputs } from './test-helpers.js';
 
 describe('grep command - Real Bash Comparison', () => {
@@ -297,8 +297,8 @@ describe('grep command - Real Bash Comparison', () => {
 });
 `,
 
-      // Test helpers
-      "/project/src/comparison-tests/test-helpers.ts": `import { Bash } from '../BashEnv.js';
+			// Test helpers
+			'/project/src/comparison-tests/test-helpers.ts': `import { Bash } from '../BashEnv.js';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs/promises';
@@ -358,8 +358,8 @@ async function runRealBash(command: string, cwd: string) {
 }
 `,
 
-      // Types
-      "/project/src/types.ts": `export interface ExecResult {
+			// Types
+			'/project/src/types.ts': `export interface ExecResult {
   stdout: string;
   stderr: string;
   exitCode: number;
@@ -378,240 +378,240 @@ export interface CommandContext {
 }
 `,
 
-      // Package.json
-      "/project/package.json": JSON.stringify(
-        {
-          name: "bash-env",
-          version: "1.0.0",
-          type: "module",
-          scripts: {
-            test: "vitest",
-            "test:run": "vitest run",
-          },
-          devDependencies: {
-            vitest: "^4.0.0",
-            typescript: "^5.0.0",
-          },
-        },
-        null,
-        2,
-      ),
-    },
-    cwd: "/project",
-  });
+			// Package.json
+			'/project/package.json': JSON.stringify(
+				{
+					name: 'bash-env',
+					version: '1.0.0',
+					type: 'module',
+					scripts: {
+						test: 'vitest',
+						'test:run': 'vitest run',
+					},
+					devDependencies: {
+						vitest: '^4.0.0',
+						typescript: '^5.0.0',
+					},
+				},
+				null,
+				2
+			),
+		},
+		cwd: '/project',
+	})
 }
 
-describe("Agent Scenario: Feature Implementation", () => {
-  describe("Step 1: Find skipped tests to understand requirements", () => {
-    it("should find all skipped tests", async () => {
-      const env = createEnv();
-      const result = await env.exec('grep -rn "it.skip" /project/src');
-      expect(result.stdout).toContain("it.skip");
-      expect(result.stdout).toContain("ls.comparison.test.ts");
-      expect(result.stdout).toContain("ls.test.ts");
-    });
+describe('Agent Scenario: Feature Implementation', () => {
+	describe('Step 1: Find skipped tests to understand requirements', () => {
+		it('should find all skipped tests', async () => {
+			const env = createEnv()
+			const result = await env.exec('grep -rn "it.skip" /project/src')
+			expect(result.stdout).toContain('it.skip')
+			expect(result.stdout).toContain('ls.comparison.test.ts')
+			expect(result.stdout).toContain('ls.test.ts')
+		})
 
-    it("should identify specific issues from skip comments", async () => {
-      const env = createEnv();
-      const result = await env.exec(
-        'grep -B1 "it.skip" /project/src/comparison-tests/ls.comparison.test.ts',
-      );
-      expect(result.stdout).toContain("TODO");
-      expect(result.stdout).toContain(". and ..");
-    });
-  });
+		it('should identify specific issues from skip comments', async () => {
+			const env = createEnv()
+			const result = await env.exec(
+				'grep -B1 "it.skip" /project/src/comparison-tests/ls.comparison.test.ts'
+			)
+			expect(result.stdout).toContain('TODO')
+			expect(result.stdout).toContain('. and ..')
+		})
+	})
 
-  describe("Step 2: Read skipped test to understand requirements", () => {
-    it("should read the comparison test file", async () => {
-      const env = createEnv();
-      const result = await env.exec(
-        "cat /project/src/comparison-tests/ls.comparison.test.ts",
-      );
-      expect(result.stdout).toContain("ls -a");
-      expect(result.stdout).toContain("ls -A");
-      expect(result.stdout).toContain("ls -R");
-    });
+	describe('Step 2: Read skipped test to understand requirements', () => {
+		it('should read the comparison test file', async () => {
+			const env = createEnv()
+			const result = await env.exec(
+				'cat /project/src/comparison-tests/ls.comparison.test.ts'
+			)
+			expect(result.stdout).toContain('ls -a')
+			expect(result.stdout).toContain('ls -A')
+			expect(result.stdout).toContain('ls -R')
+		})
 
-    it("should understand what compareOutputs does", async () => {
-      const env = createEnv();
-      const result = await env.exec(
-        'grep -A5 "compareOutputs" /project/src/comparison-tests/test-helpers.ts',
-      );
-      expect(result.stdout).toContain("bashEnvResult");
-      expect(result.stdout).toContain("realBashResult");
-    });
-  });
+		it('should understand what compareOutputs does', async () => {
+			const env = createEnv()
+			const result = await env.exec(
+				'grep -A5 "compareOutputs" /project/src/comparison-tests/test-helpers.ts'
+			)
+			expect(result.stdout).toContain('bashEnvResult')
+			expect(result.stdout).toContain('realBashResult')
+		})
+	})
 
-  describe("Step 3: Understand current implementation", () => {
-    it("should read the ls command implementation", async () => {
-      const env = createEnv();
-      const result = await env.exec("cat /project/src/commands/ls/ls.ts");
-      expect(result.stdout).toContain("showAll");
-      expect(result.stdout).toContain("showAlmostAll");
-      expect(result.stdout).toContain("recursive");
-    });
+	describe('Step 3: Understand current implementation', () => {
+		it('should read the ls command implementation', async () => {
+			const env = createEnv()
+			const result = await env.exec('cat /project/src/commands/ls/ls.ts')
+			expect(result.stdout).toContain('showAll')
+			expect(result.stdout).toContain('showAlmostAll')
+			expect(result.stdout).toContain('recursive')
+		})
 
-    it("should find relevant flags handling", async () => {
-      const env = createEnv();
-      const result = await env.exec(
-        'grep -n "showAll\\|showHidden" /project/src/commands/ls/ls.ts',
-      );
-      expect(result.stdout).toContain("showAll");
-      expect(result.stdout).toContain("showHidden");
-    });
+		it('should find relevant flags handling', async () => {
+			const env = createEnv()
+			const result = await env.exec(
+				'grep -n "showAll\\|showHidden" /project/src/commands/ls/ls.ts'
+			)
+			expect(result.stdout).toContain('showAll')
+			expect(result.stdout).toContain('showHidden')
+		})
 
-    it("should find TODO comments in implementation", async () => {
-      const env = createEnv();
-      const result = await env.exec(
-        'grep -n "TODO" /project/src/commands/ls/ls.ts',
-      );
-      expect(result.stdout).toContain("TODO");
-      expect(result.stdout).toContain(". and ..");
-    });
-  });
+		it('should find TODO comments in implementation', async () => {
+			const env = createEnv()
+			const result = await env.exec(
+				'grep -n "TODO" /project/src/commands/ls/ls.ts'
+			)
+			expect(result.stdout).toContain('TODO')
+			expect(result.stdout).toContain('. and ..')
+		})
+	})
 
-  describe("Step 4: Find where commands are registered", () => {
-    it("should locate command registration", async () => {
-      const env = createEnv();
-      const result = await env.exec(
-        'grep -n "registerCommand" /project/src/BashEnv.ts',
-      );
-      expect(result.stdout).toContain("registerCommand");
-      expect(result.stdout).toContain("lsCommand");
-    });
+	describe('Step 4: Find where commands are registered', () => {
+		it('should locate command registration', async () => {
+			const env = createEnv()
+			const result = await env.exec(
+				'grep -n "registerCommand" /project/src/BashEnv.ts'
+			)
+			expect(result.stdout).toContain('registerCommand')
+			expect(result.stdout).toContain('lsCommand')
+		})
 
-    it("should find TODO for missing commands", async () => {
-      const env = createEnv();
-      const result = await env.exec(
-        'grep -n "TODO.*command" /project/src/BashEnv.ts',
-      );
-      expect(result.stdout).toContain("true");
-      expect(result.stdout).toContain("false");
-    });
-  });
+		it('should find TODO for missing commands', async () => {
+			const env = createEnv()
+			const result = await env.exec(
+				'grep -n "TODO.*command" /project/src/BashEnv.ts'
+			)
+			expect(result.stdout).toContain('true')
+			expect(result.stdout).toContain('false')
+		})
+	})
 
-  describe("Step 5: Explore related files", () => {
-    it("should find files that use ls flags", async () => {
-      const env = createEnv();
-      const result = await env.exec('grep -rl "ls -a\\|ls -A" /project/src');
-      expect(result.stdout).toContain("ls.comparison.test.ts");
-      expect(result.stdout).toContain("ls.test.ts");
-    });
+	describe('Step 5: Explore related files', () => {
+		it('should find files that use ls flags', async () => {
+			const env = createEnv()
+			const result = await env.exec('grep -rl "ls -a\\|ls -A" /project/src')
+			expect(result.stdout).toContain('ls.comparison.test.ts')
+			expect(result.stdout).toContain('ls.test.ts')
+		})
 
-    it("should find unit tests to update", async () => {
-      const env = createEnv();
-      const result = await env.exec(
-        'grep -n "should.*-a" /project/src/commands/ls/ls.test.ts',
-      );
-      expect(result.stdout).toContain("should");
-      expect(result.stdout).toContain("-a");
-    });
-  });
+		it('should find unit tests to update', async () => {
+			const env = createEnv()
+			const result = await env.exec(
+				'grep -n "should.*-a" /project/src/commands/ls/ls.test.ts'
+			)
+			expect(result.stdout).toContain('should')
+			expect(result.stdout).toContain('-a')
+		})
+	})
 
-  describe("Step 6: Understand filesystem implementation", () => {
-    it("should read the fs implementation", async () => {
-      const env = createEnv();
-      const result = await env.exec("cat /project/src/fs.ts");
-      expect(result.stdout).toContain("VirtualFs");
-      expect(result.stdout).toContain("readdir");
-    });
+	describe('Step 6: Understand filesystem implementation', () => {
+		it('should read the fs implementation', async () => {
+			const env = createEnv()
+			const result = await env.exec('cat /project/src/fs.ts')
+			expect(result.stdout).toContain('VirtualFs')
+			expect(result.stdout).toContain('readdir')
+		})
 
-    it("should find TODO for missing methods", async () => {
-      const env = createEnv();
-      const result = await env.exec('grep -n "TODO" /project/src/fs.ts');
-      expect(result.stdout).toContain("mkdirSync");
-    });
-  });
+		it('should find TODO for missing methods', async () => {
+			const env = createEnv()
+			const result = await env.exec('grep -n "TODO" /project/src/fs.ts')
+			expect(result.stdout).toContain('mkdirSync')
+		})
+	})
 
-  describe("Step 7: Verify test patterns", () => {
-    it("should understand test structure", async () => {
-      const env = createEnv();
-      const result = await env.exec(
-        'grep -n "describe\\|it(" /project/src/commands/ls/ls.test.ts | head -10',
-      );
-      expect(result.stdout).toContain("describe");
-      expect(result.stdout).toContain("it(");
-    });
+	describe('Step 7: Verify test patterns', () => {
+		it('should understand test structure', async () => {
+			const env = createEnv()
+			const result = await env.exec(
+				'grep -n "describe\\|it(" /project/src/commands/ls/ls.test.ts | head -10'
+			)
+			expect(result.stdout).toContain('describe')
+			expect(result.stdout).toContain('it(')
+		})
 
-    it("should find assertions in tests", async () => {
-      const env = createEnv();
-      const result = await env.exec(
-        'grep -n "expect" /project/src/commands/ls/ls.test.ts',
-      );
-      expect(result.stdout).toContain("expect");
-      expect(result.stdout).toContain("toContain");
-    });
-  });
+		it('should find assertions in tests', async () => {
+			const env = createEnv()
+			const result = await env.exec(
+				'grep -n "expect" /project/src/commands/ls/ls.test.ts'
+			)
+			expect(result.stdout).toContain('expect')
+			expect(result.stdout).toContain('toContain')
+		})
+	})
 
-  describe("Step 8: Comprehensive exploration workflow", () => {
-    it("should trace the full implementation path", async () => {
-      const env = createEnv();
+	describe('Step 8: Comprehensive exploration workflow', () => {
+		it('should trace the full implementation path', async () => {
+			const env = createEnv()
 
-      // Find skipped tests
-      const skipped = await env.exec(
-        'grep -c "it.skip" /project/src/comparison-tests/ls.comparison.test.ts',
-      );
-      expect(parseInt(skipped.stdout.trim(), 10)).toBeGreaterThan(0);
+			// Find skipped tests
+			const skipped = await env.exec(
+				'grep -c "it.skip" /project/src/comparison-tests/ls.comparison.test.ts'
+			)
+			expect(parseInt(skipped.stdout.trim(), 10)).toBeGreaterThan(0)
 
-      // Find the implementation
-      const impl = await env.exec(
-        'find /project/src/commands -name "ls.ts" | grep -v test',
-      );
-      expect(impl.stdout).toContain("ls.ts");
+			// Find the implementation
+			const impl = await env.exec(
+				'find /project/src/commands -name "ls.ts" | grep -v test'
+			)
+			expect(impl.stdout).toContain('ls.ts')
 
-      // Check for TODOs in implementation
-      const todos = await env.exec(
-        'grep -c "TODO" /project/src/commands/ls/ls.ts',
-      );
-      expect(parseInt(todos.stdout.trim(), 10)).toBeGreaterThan(0);
+			// Check for TODOs in implementation
+			const todos = await env.exec(
+				'grep -c "TODO" /project/src/commands/ls/ls.ts'
+			)
+			expect(parseInt(todos.stdout.trim(), 10)).toBeGreaterThan(0)
 
-      // Find related tests
-      const tests = await env.exec(
-        'find /project/src -name "*.test.ts" | grep ls',
-      );
-      expect(tests.stdout).toContain("ls.test.ts");
-      expect(tests.stdout).toContain("ls.comparison.test.ts");
-    });
+			// Find related tests
+			const tests = await env.exec(
+				'find /project/src -name "*.test.ts" | grep ls'
+			)
+			expect(tests.stdout).toContain('ls.test.ts')
+			expect(tests.stdout).toContain('ls.comparison.test.ts')
+		})
 
-    it("should find all files needing modification", async () => {
-      const env = createEnv();
+		it('should find all files needing modification', async () => {
+			const env = createEnv()
 
-      // Files with skipped tests
-      const skippedFiles = await env.exec('grep -rl "it.skip" /project/src');
-      expect(skippedFiles.stdout).toContain("ls.comparison.test.ts");
-      expect(skippedFiles.stdout).toContain("ls.test.ts");
-      expect(skippedFiles.stdout).toContain("grep.comparison.test.ts");
+			// Files with skipped tests
+			const skippedFiles = await env.exec('grep -rl "it.skip" /project/src')
+			expect(skippedFiles.stdout).toContain('ls.comparison.test.ts')
+			expect(skippedFiles.stdout).toContain('ls.test.ts')
+			expect(skippedFiles.stdout).toContain('grep.comparison.test.ts')
 
-      // Files with TODOs
-      const todoFiles = await env.exec('grep -rl "TODO" /project/src');
-      expect(todoFiles.stdout).toContain("ls.ts");
-      expect(todoFiles.stdout).toContain("fs.ts");
-      expect(todoFiles.stdout).toContain("BashEnv.ts");
-    });
-  });
+			// Files with TODOs
+			const todoFiles = await env.exec('grep -rl "TODO" /project/src')
+			expect(todoFiles.stdout).toContain('ls.ts')
+			expect(todoFiles.stdout).toContain('fs.ts')
+			expect(todoFiles.stdout).toContain('BashEnv.ts')
+		})
+	})
 
-  describe("Step 9: Search for patterns to replicate", () => {
-    it("should find async execute pattern", async () => {
-      const env = createEnv();
-      const result = await env.exec(
-        'grep -rn "async execute" /project/src/commands',
-      );
-      expect(result.stdout).toContain("async execute");
-    });
+	describe('Step 9: Search for patterns to replicate', () => {
+		it('should find async execute pattern', async () => {
+			const env = createEnv()
+			const result = await env.exec(
+				'grep -rn "async execute" /project/src/commands'
+			)
+			expect(result.stdout).toContain('async execute')
+		})
 
-    it("should find Command interface implementations", async () => {
-      const env = createEnv();
-      const result = await env.exec(
-        'grep -rn "Command = {" /project/src/commands',
-      );
-      expect(result.stdout).toContain("lsCommand");
-      expect(result.stdout).toContain("findCommand");
-    });
+		it('should find Command interface implementations', async () => {
+			const env = createEnv()
+			const result = await env.exec(
+				'grep -rn "Command = {" /project/src/commands'
+			)
+			expect(result.stdout).toContain('lsCommand')
+			expect(result.stdout).toContain('findCommand')
+		})
 
-    it("should find error handling patterns", async () => {
-      const env = createEnv();
-      const result = await env.exec('grep -rn "catch" /project/src/commands');
-      expect(result.stdout).toContain("catch");
-    });
-  });
-});
+		it('should find error handling patterns', async () => {
+			const env = createEnv()
+			const result = await env.exec('grep -rn "catch" /project/src/commands')
+			expect(result.stdout).toContain('catch')
+		})
+	})
+})

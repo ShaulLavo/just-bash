@@ -10,18 +10,18 @@
  * Returns null if the URL is invalid.
  */
 export function parseUrl(
-  urlString: string,
+	urlString: string
 ): { origin: string; pathname: string; href: string } | null {
-  try {
-    const url = new URL(urlString);
-    return {
-      origin: url.origin,
-      pathname: url.pathname,
-      href: url.href,
-    };
-  } catch {
-    return null;
-  }
+	try {
+		const url = new URL(urlString)
+		return {
+			origin: url.origin,
+			pathname: url.pathname,
+			href: url.href,
+		}
+	} catch {
+		return null
+	}
 }
 
 /**
@@ -30,19 +30,19 @@ export function parseUrl(
  * - Preserves path prefixes as-is
  */
 export function normalizeAllowListEntry(entry: string): {
-  origin: string;
-  pathPrefix: string;
+	origin: string
+	pathPrefix: string
 } | null {
-  const parsed = parseUrl(entry);
-  if (!parsed) {
-    return null;
-  }
+	const parsed = parseUrl(entry)
+	if (!parsed) {
+		return null
+	}
 
-  return {
-    origin: parsed.origin,
-    // Keep the pathname exactly as specified (including trailing slash if present)
-    pathPrefix: parsed.pathname,
-  };
+	return {
+		origin: parsed.origin,
+		// Keep the pathname exactly as specified (including trailing slash if present)
+		pathPrefix: parsed.pathname,
+	}
 }
 
 /**
@@ -58,31 +58,31 @@ export function normalizeAllowListEntry(entry: string): {
  * @returns true if the URL matches the allow-list entry
  */
 export function matchesAllowListEntry(
-  url: string,
-  allowedEntry: string,
+	url: string,
+	allowedEntry: string
 ): boolean {
-  const parsedUrl = parseUrl(url);
-  if (!parsedUrl) {
-    return false;
-  }
+	const parsedUrl = parseUrl(url)
+	if (!parsedUrl) {
+		return false
+	}
 
-  const normalizedEntry = normalizeAllowListEntry(allowedEntry);
-  if (!normalizedEntry) {
-    return false;
-  }
+	const normalizedEntry = normalizeAllowListEntry(allowedEntry)
+	if (!normalizedEntry) {
+		return false
+	}
 
-  // Origins must match exactly
-  if (parsedUrl.origin !== normalizedEntry.origin) {
-    return false;
-  }
+	// Origins must match exactly
+	if (parsedUrl.origin !== normalizedEntry.origin) {
+		return false
+	}
 
-  // If the allow-list entry is just the origin (path is "/" or empty), allow all paths
-  if (normalizedEntry.pathPrefix === "/" || normalizedEntry.pathPrefix === "") {
-    return true;
-  }
+	// If the allow-list entry is just the origin (path is "/" or empty), allow all paths
+	if (normalizedEntry.pathPrefix === '/' || normalizedEntry.pathPrefix === '') {
+		return true
+	}
 
-  // The URL's path must start with the allow-list entry's path prefix
-  return parsedUrl.pathname.startsWith(normalizedEntry.pathPrefix);
+	// The URL's path must start with the allow-list entry's path prefix
+	return parsedUrl.pathname.startsWith(normalizedEntry.pathPrefix)
 }
 
 /**
@@ -93,14 +93,14 @@ export function matchesAllowListEntry(
  * @returns true if the URL is allowed
  */
 export function isUrlAllowed(
-  url: string,
-  allowedUrlPrefixes: string[],
+	url: string,
+	allowedUrlPrefixes: string[]
 ): boolean {
-  if (!allowedUrlPrefixes || allowedUrlPrefixes.length === 0) {
-    return false;
-  }
+	if (!allowedUrlPrefixes || allowedUrlPrefixes.length === 0) {
+		return false
+	}
 
-  return allowedUrlPrefixes.some((entry) => matchesAllowListEntry(url, entry));
+	return allowedUrlPrefixes.some((entry) => matchesAllowListEntry(url, entry))
 }
 
 /**
@@ -109,40 +109,40 @@ export function isUrlAllowed(
  * Returns an array of error messages for invalid entries.
  */
 export function validateAllowList(allowedUrlPrefixes: string[]): string[] {
-  const errors: string[] = [];
+	const errors: string[] = []
 
-  for (const entry of allowedUrlPrefixes) {
-    const parsed = parseUrl(entry);
-    if (!parsed) {
-      errors.push(
-        `Invalid URL in allow-list: "${entry}" - must be a valid URL with scheme and host (e.g., "https://example.com")`,
-      );
-      continue;
-    }
+	for (const entry of allowedUrlPrefixes) {
+		const parsed = parseUrl(entry)
+		if (!parsed) {
+			errors.push(
+				`Invalid URL in allow-list: "${entry}" - must be a valid URL with scheme and host (e.g., "https://example.com")`
+			)
+			continue
+		}
 
-    const url = new URL(entry);
+		const url = new URL(entry)
 
-    // Only allow http and https
-    if (url.protocol !== "http:" && url.protocol !== "https:") {
-      errors.push(
-        `Only http and https URLs are allowed in allow-list: "${entry}"`,
-      );
-      continue;
-    }
+		// Only allow http and https
+		if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+			errors.push(
+				`Only http and https URLs are allowed in allow-list: "${entry}"`
+			)
+			continue
+		}
 
-    // Must have a valid host (not empty)
-    if (!url.hostname) {
-      errors.push(`Allow-list entry must include a hostname: "${entry}"`);
-      continue;
-    }
+		// Must have a valid host (not empty)
+		if (!url.hostname) {
+			errors.push(`Allow-list entry must include a hostname: "${entry}"`)
+			continue
+		}
 
-    // Warn about query strings and fragments (they'll be ignored)
-    if (url.search || url.hash) {
-      errors.push(
-        `Query strings and fragments are ignored in allow-list entries: "${entry}"`,
-      );
-    }
-  }
+		// Warn about query strings and fragments (they'll be ignored)
+		if (url.search || url.hash) {
+			errors.push(
+				`Query strings and fragments are ignored in allow-list entries: "${entry}"`
+			)
+		}
+	}
 
-  return errors;
+	return errors
 }

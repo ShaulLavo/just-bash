@@ -47,14 +47,14 @@ npm install just-bash
 ### Basic API
 
 ```typescript
-import { Bash } from "just-bash";
+import { Bash } from 'just-bash'
 
-const env = new Bash();
-await env.exec('echo "Hello" > greeting.txt');
-const result = await env.exec("cat greeting.txt");
-console.log(result.stdout); // "Hello\n"
-console.log(result.exitCode); // 0
-console.log(result.env); // Final environment after execution
+const env = new Bash()
+await env.exec('echo "Hello" > greeting.txt')
+const result = await env.exec('cat greeting.txt')
+console.log(result.stdout) // "Hello\n"
+console.log(result.exitCode) // 0
+console.log(result.env) // Final environment after execution
 ```
 
 Each `exec()` is isolated—env vars, functions, and cwd don't persist across calls (filesystem does).
@@ -63,14 +63,14 @@ Each `exec()` is isolated—env vars, functions, and cwd don't persist across ca
 
 ```typescript
 const env = new Bash({
-  files: { "/data/file.txt": "content" }, // Initial files
-  env: { MY_VAR: "value" }, // Initial environment
-  cwd: "/app", // Starting directory (default: /home/user)
-  executionLimits: { maxCallDepth: 50 }, // See "Execution Protection"
-});
+	files: { '/data/file.txt': 'content' }, // Initial files
+	env: { MY_VAR: 'value' }, // Initial environment
+	cwd: '/app', // Starting directory (default: /home/user)
+	executionLimits: { maxCallDepth: 50 }, // See "Execution Protection"
+})
 
 // Per-exec overrides
-await env.exec("echo $TEMP", { env: { TEMP: "value" }, cwd: "/tmp" });
+await env.exec('echo $TEMP', { env: { TEMP: 'value' }, cwd: '/tmp' })
 ```
 
 ### Custom Commands
@@ -78,21 +78,21 @@ await env.exec("echo $TEMP", { env: { TEMP: "value" }, cwd: "/tmp" });
 Extend just-bash with your own TypeScript commands using `defineCommand`:
 
 ```typescript
-import { Bash, defineCommand } from "just-bash";
+import { Bash, defineCommand } from 'just-bash'
 
-const hello = defineCommand("hello", async (args, ctx) => {
-  const name = args[0] || "world";
-  return { stdout: `Hello, ${name}!\n`, stderr: "", exitCode: 0 };
-});
+const hello = defineCommand('hello', async (args, ctx) => {
+	const name = args[0] || 'world'
+	return { stdout: `Hello, ${name}!\n`, stderr: '', exitCode: 0 }
+})
 
-const upper = defineCommand("upper", async (args, ctx) => {
-  return { stdout: ctx.stdin.toUpperCase(), stderr: "", exitCode: 0 };
-});
+const upper = defineCommand('upper', async (args, ctx) => {
+	return { stdout: ctx.stdin.toUpperCase(), stderr: '', exitCode: 0 }
+})
 
-const bash = new Bash({ customCommands: [hello, upper] });
+const bash = new Bash({ customCommands: [hello, upper] })
 
-await bash.exec("hello Alice"); // "Hello, Alice!\n"
-await bash.exec("echo 'test' | upper"); // "TEST\n"
+await bash.exec('hello Alice') // "Hello, Alice!\n"
+await bash.exec("echo 'test' | upper") // "TEST\n"
 ```
 
 Custom commands receive the full `CommandContext` with access to `fs`, `cwd`, `env`, `stdin`, and `exec` for running subcommands.
@@ -104,33 +104,33 @@ Three filesystem implementations are available:
 **InMemoryFs** (default) - Pure in-memory filesystem, no disk access:
 
 ```typescript
-import { Bash } from "just-bash";
-const env = new Bash(); // Uses InMemoryFs by default
+import { Bash } from 'just-bash'
+const env = new Bash() // Uses InMemoryFs by default
 ```
 
 **OverlayFs** - Copy-on-write over a real directory. Reads come from disk, writes stay in memory:
 
 ```typescript
-import { Bash } from "just-bash";
-import { OverlayFs } from "just-bash/fs/overlay-fs";
+import { Bash } from 'just-bash'
+import { OverlayFs } from 'just-bash/fs/overlay-fs'
 
-const overlay = new OverlayFs({ root: "/path/to/project" });
-const env = new Bash({ fs: overlay, cwd: overlay.getMountPoint() });
+const overlay = new OverlayFs({ root: '/path/to/project' })
+const env = new Bash({ fs: overlay, cwd: overlay.getMountPoint() })
 
-await env.exec("cat package.json"); // reads from disk
-await env.exec('echo "modified" > package.json'); // stays in memory
+await env.exec('cat package.json') // reads from disk
+await env.exec('echo "modified" > package.json') // stays in memory
 ```
 
 **ReadWriteFs** - Direct read-write access to a real directory. Use this if you want the agent to be agle to write to your disk:
 
 ```typescript
-import { Bash } from "just-bash";
-import { ReadWriteFs } from "just-bash/fs/read-write-fs";
+import { Bash } from 'just-bash'
+import { ReadWriteFs } from 'just-bash/fs/read-write-fs'
 
-const rwfs = new ReadWriteFs({ root: "/path/to/sandbox" });
-const env = new Bash({ fs: rwfs });
+const rwfs = new ReadWriteFs({ root: '/path/to/sandbox' })
+const env = new Bash({ fs: rwfs })
 
-await env.exec('echo "hello" > file.txt'); // writes to real filesystem
+await env.exec('echo "hello" > file.txt') // writes to real filesystem
 ```
 
 ### AI SDK Tool
@@ -142,18 +142,18 @@ npm install bash-tool
 ```
 
 ```typescript
-import { createBashTool } from "bash-tool";
-import { generateText } from "ai";
+import { createBashTool } from 'bash-tool'
+import { generateText } from 'ai'
 
 const bashTool = createBashTool({
-  files: { "/data/users.json": '[{"name": "Alice"}, {"name": "Bob"}]' },
-});
+	files: { '/data/users.json': '[{"name": "Alice"}, {"name": "Bob"}]' },
+})
 
 const result = await generateText({
-  model: "anthropic/claude-sonnet-4",
-  tools: { bash: bashTool },
-  prompt: "Count the users in /data/users.json",
-});
+	model: 'anthropic/claude-sonnet-4',
+	tools: { bash: bashTool },
+	prompt: 'Count the users in /data/users.json',
+})
 ```
 
 See the [bash-tool documentation](https://github.com/vercel-labs/bash-tool) for more details and examples.
@@ -163,30 +163,30 @@ See the [bash-tool documentation](https://github.com/vercel-labs/bash-tool) for 
 Bash provides a `Sandbox` class that's API-compatible with [`@vercel/sandbox`](https://vercel.com/docs/vercel-sandbox), making it easy to swap implementations. You can start with Bash and switch to a real sandbox when you need the power of a full VM (e.g. to run node, python, or custom binaries).
 
 ```typescript
-import { Sandbox } from "just-bash";
+import { Sandbox } from 'just-bash'
 
 // Create a sandbox instance
-const sandbox = await Sandbox.create({ cwd: "/app" });
+const sandbox = await Sandbox.create({ cwd: '/app' })
 
 // Write files to the virtual filesystem
 await sandbox.writeFiles({
-  "/app/script.sh": 'echo "Hello World"',
-  "/app/data.json": '{"key": "value"}',
-});
+	'/app/script.sh': 'echo "Hello World"',
+	'/app/data.json': '{"key": "value"}',
+})
 
 // Run commands and get results
-const cmd = await sandbox.runCommand("bash /app/script.sh");
-const output = await cmd.stdout(); // "Hello World\n"
-const exitCode = (await cmd.wait()).exitCode; // 0
+const cmd = await sandbox.runCommand('bash /app/script.sh')
+const output = await cmd.stdout() // "Hello World\n"
+const exitCode = (await cmd.wait()).exitCode // 0
 
 // Read files back
-const content = await sandbox.readFile("/app/data.json");
+const content = await sandbox.readFile('/app/data.json')
 
 // Create directories
-await sandbox.mkDir("/app/logs", { recursive: true });
+await sandbox.mkDir('/app/logs', { recursive: true })
 
 // Clean up (no-op for Bash, but API-compatible)
-await sandbox.stop();
+await sandbox.stop()
 ```
 
 ### CLI Binary
@@ -294,26 +294,26 @@ Network access (and the `curl` command) is disabled by default for security. To 
 ```typescript
 // Allow specific URLs with GET/HEAD only (safest)
 const env = new Bash({
-  network: {
-    allowedUrlPrefixes: [
-      "https://api.github.com/repos/myorg/",
-      "https://api.example.com",
-    ],
-  },
-});
+	network: {
+		allowedUrlPrefixes: [
+			'https://api.github.com/repos/myorg/',
+			'https://api.example.com',
+		],
+	},
+})
 
 // Allow specific URLs with additional methods
 const env = new Bash({
-  network: {
-    allowedUrlPrefixes: ["https://api.example.com"],
-    allowedMethods: ["GET", "HEAD", "POST"], // Default: ["GET", "HEAD"]
-  },
-});
+	network: {
+		allowedUrlPrefixes: ['https://api.example.com'],
+		allowedMethods: ['GET', 'HEAD', 'POST'], // Default: ["GET", "HEAD"]
+	},
+})
 
 // Allow all URLs and methods (use with caution)
 const env = new Bash({
-  network: { dangerouslyAllowFullInternetAccess: true },
-});
+	network: { dangerouslyAllowFullInternetAccess: true },
+})
 ```
 
 **Note:** The `curl` command only exists when network is configured. Without network configuration, `curl` returns "command not found".
@@ -347,14 +347,14 @@ Bash protects against infinite loops and deep recursion with configurable limits
 
 ```typescript
 const env = new Bash({
-  executionLimits: {
-    maxCallDepth: 100, // Max function recursion depth
-    maxCommandCount: 10000, // Max total commands executed
-    maxLoopIterations: 10000, // Max iterations per loop
-    maxAwkIterations: 10000, // Max iterations in awk programs
-    maxSedIterations: 10000, // Max iterations in sed scripts
-  },
-});
+	executionLimits: {
+		maxCallDepth: 100, // Max function recursion depth
+		maxCommandCount: 10000, // Max total commands executed
+		maxLoopIterations: 10000, // Max iterations per loop
+		maxAwkIterations: 10000, // Max iterations in awk programs
+		maxSedIterations: 10000, // Max iterations in sed scripts
+	},
+})
 ```
 
 All limits have sensible defaults. Error messages include hints on which limit to increase. Feel free to increase if your scripts intentionally go beyond them.

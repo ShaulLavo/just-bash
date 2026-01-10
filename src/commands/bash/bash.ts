@@ -1,159 +1,159 @@
-import type { Command, CommandContext, ExecResult } from "../../types.js";
-import { hasHelpFlag, showHelp } from "../help.js";
+import type { Command, CommandContext, ExecResult } from '../../types.js'
+import { hasHelpFlag, showHelp } from '../help.js'
 
 const bashHelp = {
-  name: "bash",
-  summary: "execute shell commands or scripts",
-  usage: "bash [OPTIONS] [SCRIPT_FILE] [ARGUMENTS...]",
-  options: [
-    "-c COMMAND  execute COMMAND string",
-    "    --help  display this help and exit",
-  ],
-  notes: [
-    "Without -c, reads and executes commands from SCRIPT_FILE.",
-    "Arguments are passed as $1, $2, etc. to the script.",
-    '$0 is set to the script name (or "bash" with -c).',
-  ],
-};
+	name: 'bash',
+	summary: 'execute shell commands or scripts',
+	usage: 'bash [OPTIONS] [SCRIPT_FILE] [ARGUMENTS...]',
+	options: [
+		'-c COMMAND  execute COMMAND string',
+		'    --help  display this help and exit',
+	],
+	notes: [
+		'Without -c, reads and executes commands from SCRIPT_FILE.',
+		'Arguments are passed as $1, $2, etc. to the script.',
+		'$0 is set to the script name (or "bash" with -c).',
+	],
+}
 
 export const bashCommand: Command = {
-  name: "bash",
+	name: 'bash',
 
-  async execute(args: string[], ctx: CommandContext): Promise<ExecResult> {
-    if (hasHelpFlag(args)) {
-      return showHelp(bashHelp);
-    }
+	async execute(args: string[], ctx: CommandContext): Promise<ExecResult> {
+		if (hasHelpFlag(args)) {
+			return showHelp(bashHelp)
+		}
 
-    // Handle -c flag
-    // With -c: bash -c 'command' arg0 arg1 arg2
-    // arg0 becomes $0, arg1 becomes $1, arg2 becomes $2
-    if (args[0] === "-c" && args.length >= 2) {
-      const command = args[1];
-      const scriptName = args[2] || "bash";
-      const scriptArgs = args.slice(3);
-      return executeScript(command, scriptName, scriptArgs, ctx);
-    }
+		// Handle -c flag
+		// With -c: bash -c 'command' arg0 arg1 arg2
+		// arg0 becomes $0, arg1 becomes $1, arg2 becomes $2
+		if (args[0] === '-c' && args.length >= 2) {
+			const command = args[1]
+			const scriptName = args[2] || 'bash'
+			const scriptArgs = args.slice(3)
+			return executeScript(command, scriptName, scriptArgs, ctx)
+		}
 
-    // No arguments - in real bash this would be interactive mode
-    // In our implementation, we just return success
-    if (args.length === 0) {
-      return { stdout: "", stderr: "", exitCode: 0 };
-    }
+		// No arguments - in real bash this would be interactive mode
+		// In our implementation, we just return success
+		if (args.length === 0) {
+			return { stdout: '', stderr: '', exitCode: 0 }
+		}
 
-    // Read and execute script file
-    const scriptPath = args[0];
-    const scriptArgs = args.slice(1);
+		// Read and execute script file
+		const scriptPath = args[0]
+		const scriptArgs = args.slice(1)
 
-    try {
-      const fullPath = ctx.fs.resolvePath(ctx.cwd, scriptPath);
-      const scriptContent = await ctx.fs.readFile(fullPath);
-      return executeScript(scriptContent, scriptPath, scriptArgs, ctx);
-    } catch {
-      return {
-        stdout: "",
-        stderr: `bash: ${scriptPath}: No such file or directory\n`,
-        exitCode: 127,
-      };
-    }
-  },
-};
+		try {
+			const fullPath = ctx.fs.resolvePath(ctx.cwd, scriptPath)
+			const scriptContent = await ctx.fs.readFile(fullPath)
+			return executeScript(scriptContent, scriptPath, scriptArgs, ctx)
+		} catch {
+			return {
+				stdout: '',
+				stderr: `bash: ${scriptPath}: No such file or directory\n`,
+				exitCode: 127,
+			}
+		}
+	},
+}
 
 // sh is an alias for bash
 export const shCommand: Command = {
-  name: "sh",
+	name: 'sh',
 
-  async execute(args: string[], ctx: CommandContext): Promise<ExecResult> {
-    if (hasHelpFlag(args)) {
-      return showHelp({
-        ...bashHelp,
-        name: "sh",
-        summary: "execute shell commands or scripts (POSIX shell)",
-      });
-    }
+	async execute(args: string[], ctx: CommandContext): Promise<ExecResult> {
+		if (hasHelpFlag(args)) {
+			return showHelp({
+				...bashHelp,
+				name: 'sh',
+				summary: 'execute shell commands or scripts (POSIX shell)',
+			})
+		}
 
-    // Same implementation as bash
-    // With -c: sh -c 'command' arg0 arg1 arg2
-    // arg0 becomes $0, arg1 becomes $1, arg2 becomes $2
-    if (args[0] === "-c" && args.length >= 2) {
-      const command = args[1];
-      const scriptName = args[2] || "sh";
-      const scriptArgs = args.slice(3);
-      return executeScript(command, scriptName, scriptArgs, ctx);
-    }
+		// Same implementation as bash
+		// With -c: sh -c 'command' arg0 arg1 arg2
+		// arg0 becomes $0, arg1 becomes $1, arg2 becomes $2
+		if (args[0] === '-c' && args.length >= 2) {
+			const command = args[1]
+			const scriptName = args[2] || 'sh'
+			const scriptArgs = args.slice(3)
+			return executeScript(command, scriptName, scriptArgs, ctx)
+		}
 
-    if (args.length === 0) {
-      return { stdout: "", stderr: "", exitCode: 0 };
-    }
+		if (args.length === 0) {
+			return { stdout: '', stderr: '', exitCode: 0 }
+		}
 
-    const scriptPath = args[0];
-    const scriptArgs = args.slice(1);
+		const scriptPath = args[0]
+		const scriptArgs = args.slice(1)
 
-    try {
-      const fullPath = ctx.fs.resolvePath(ctx.cwd, scriptPath);
-      const scriptContent = await ctx.fs.readFile(fullPath);
-      return executeScript(scriptContent, scriptPath, scriptArgs, ctx);
-    } catch {
-      return {
-        stdout: "",
-        stderr: `sh: ${scriptPath}: No such file or directory\n`,
-        exitCode: 127,
-      };
-    }
-  },
-};
+		try {
+			const fullPath = ctx.fs.resolvePath(ctx.cwd, scriptPath)
+			const scriptContent = await ctx.fs.readFile(fullPath)
+			return executeScript(scriptContent, scriptPath, scriptArgs, ctx)
+		} catch {
+			return {
+				stdout: '',
+				stderr: `sh: ${scriptPath}: No such file or directory\n`,
+				exitCode: 127,
+			}
+		}
+	},
+}
 
 async function executeScript(
-  script: string,
-  scriptName: string,
-  scriptArgs: string[],
-  ctx: CommandContext,
+	script: string,
+	scriptName: string,
+	scriptArgs: string[],
+	ctx: CommandContext
 ): Promise<ExecResult> {
-  if (!ctx.exec) {
-    return {
-      stdout: "",
-      stderr: "bash: internal error: exec function not available\n",
-      exitCode: 1,
-    };
-  }
+	if (!ctx.exec) {
+		return {
+			stdout: '',
+			stderr: 'bash: internal error: exec function not available\n',
+			exitCode: 1,
+		}
+	}
 
-  // Build positional parameters for the exec env option
-  // Each exec is isolated, so we pass parameters via the env option
-  const positionalEnv: Record<string, string> = {
-    "0": scriptName,
-    "#": String(scriptArgs.length),
-    "@": scriptArgs.join(" "),
-    "*": scriptArgs.join(" "),
-  };
-  scriptArgs.forEach((arg, i) => {
-    positionalEnv[String(i + 1)] = arg;
-  });
+	// Build positional parameters for the exec env option
+	// Each exec is isolated, so we pass parameters via the env option
+	const positionalEnv: Record<string, string> = {
+		'0': scriptName,
+		'#': String(scriptArgs.length),
+		'@': scriptArgs.join(' '),
+		'*': scriptArgs.join(' '),
+	}
+	scriptArgs.forEach((arg, i) => {
+		positionalEnv[String(i + 1)] = arg
+	})
 
-  // Skip shebang line if present
-  let scriptToRun = script;
-  if (scriptToRun.startsWith("#!")) {
-    const firstNewline = scriptToRun.indexOf("\n");
-    if (firstNewline !== -1) {
-      scriptToRun = scriptToRun.slice(firstNewline + 1);
-    }
-  }
+	// Skip shebang line if present
+	let scriptToRun = script
+	if (scriptToRun.startsWith('#!')) {
+		const firstNewline = scriptToRun.indexOf('\n')
+		if (firstNewline !== -1) {
+			scriptToRun = scriptToRun.slice(firstNewline + 1)
+		}
+	}
 
-  // Process the script line by line, filtering out comments and empty lines
-  const lines = scriptToRun.split("\n");
-  const commands: string[] = [];
-  for (const line of lines) {
-    const trimmed = line.trim();
-    // Skip empty lines and comment lines
-    if (trimmed && !trimmed.startsWith("#")) {
-      commands.push(trimmed);
-    }
-  }
+	// Process the script line by line, filtering out comments and empty lines
+	const lines = scriptToRun.split('\n')
+	const commands: string[] = []
+	for (const line of lines) {
+		const trimmed = line.trim()
+		// Skip empty lines and comment lines
+		if (trimmed && !trimmed.startsWith('#')) {
+			commands.push(trimmed)
+		}
+	}
 
-  // Execute all commands joined by semicolons
-  // Pass positional parameters via the env option
-  const commandString = commands.join("; ");
-  const result = await ctx.exec(commandString, {
-    env: positionalEnv,
-    cwd: ctx.cwd,
-  });
-  return result;
+	// Execute all commands joined by semicolons
+	// Pass positional parameters via the env option
+	const commandString = commands.join('; ')
+	const result = await ctx.exec(commandString, {
+		env: positionalEnv,
+		cwd: ctx.cwd,
+	})
+	return result
 }

@@ -6,15 +6,15 @@
  * - test/[ ] command (literal comparison only)
  */
 
-import { matchPattern } from "../conditionals.js";
+import { matchPattern } from '../conditionals.js'
 
-export type StringCompareOp = "=" | "==" | "!=";
+export type StringCompareOp = '=' | '==' | '!='
 
 /**
  * Check if an operator is a string comparison operator.
  */
 export function isStringCompareOp(op: string): op is StringCompareOp {
-  return op === "=" || op === "==" || op === "!=";
+	return op === '=' || op === '==' || op === '!='
 }
 
 /**
@@ -27,11 +27,11 @@ export function isStringCompareOp(op: string): op is StringCompareOp {
  * @returns True if the comparison succeeds
  */
 export function compareStrings(
-  op: StringCompareOp,
-  left: string,
-  right: string,
-  usePattern = false,
+	op: StringCompareOp,
+	left: string,
+	right: string,
+	usePattern = false
 ): boolean {
-  const isEqual = usePattern ? matchPattern(left, right) : left === right;
-  return op === "!=" ? !isEqual : isEqual;
+	const isEqual = usePattern ? matchPattern(left, right) : left === right
+	return op === '!=' ? !isEqual : isEqual
 }

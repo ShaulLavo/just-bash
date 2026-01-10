@@ -451,9 +451,7 @@ export const grepCommand: Command = {
 				) {
 					return {
 						file,
-						output: result.matched
-							? `Binary file ${file} matches\n`
-							: '',
+						output: result.matched ? `Binary file ${file} matches\n` : '',
 						matched: result.matched,
 						isDirectory: false,
 						error: false,
@@ -556,7 +554,8 @@ function canUseFastLiteral(options: {
 	if (!options.fixedStrings) return false
 	if (options.pattern.length === 0) return false
 	if (options.pattern.includes('\n')) return false
-	if (options.ignoreCase || options.wholeWord || options.lineRegexp) return false
+	if (options.ignoreCase || options.wholeWord || options.lineRegexp)
+		return false
 	if (options.onlyMatching) return false
 	if (options.beforeContext !== 0 || options.afterContext !== 0) return false
 	return true

@@ -26,18 +26,18 @@ npm install bash-tool
 ```
 
 ```typescript
-import { createBashTool } from "bash-tool";
-import { generateText } from "ai";
+import { createBashTool } from 'bash-tool'
+import { generateText } from 'ai'
 
 const bashTool = createBashTool({
-  files: { "/data/users.json": '[{"name": "Alice"}, {"name": "Bob"}]' },
-});
+	files: { '/data/users.json': '[{"name": "Alice"}, {"name": "Bob"}]' },
+})
 
 const result = await generateText({
-  model: "anthropic/claude-sonnet-4",
-  tools: { bash: bashTool },
-  prompt: "Count the users in /data/users.json",
-});
+	model: 'anthropic/claude-sonnet-4',
+	tools: { bash: bashTool },
+	prompt: 'Count the users in /data/users.json',
+})
 ```
 
 See the [bash-tool documentation](https://github.com/vercel-labs/bash-tool) for more details.
@@ -45,14 +45,14 @@ See the [bash-tool documentation](https://github.com/vercel-labs/bash-tool) for 
 ## Quick Reference
 
 ```typescript
-import { Bash } from "just-bash";
+import { Bash } from 'just-bash'
 
 const bash = new Bash({
-  files: { "/data/input.txt": "content" }, // Initial files
-  cwd: "/data", // Working directory
-});
+	files: { '/data/input.txt': 'content' }, // Initial files
+	cwd: '/data', // Working directory
+})
 
-const result = await bash.exec("cat input.txt | grep pattern");
+const result = await bash.exec('cat input.txt | grep pattern')
 // result.stdout  - command output
 // result.stderr  - error output
 // result.exitCode - 0 = success, non-zero = failure
@@ -244,12 +244,12 @@ cat data.csv | awk -F',' '{sum += $3} END {print sum}'
 Always check `exitCode`:
 
 ```typescript
-import { Bash } from "just-bash";
+import { Bash } from 'just-bash'
 
-const bash = new Bash({ files: { "/file.txt": "some content" } });
-const result = await bash.exec("grep pattern file.txt");
+const bash = new Bash({ files: { '/file.txt': 'some content' } })
+const result = await bash.exec('grep pattern file.txt')
 if (result.exitCode !== 0) {
-  // Command failed - check result.stderr for details
+	// Command failed - check result.stderr for details
 }
 ```
 
@@ -293,6 +293,7 @@ grep -r "interface.*Options" node_modules/just-bash/dist/*.d.ts
 ```
 
 Key types to explore:
+
 - `BashOptions` - Constructor options for `new Bash()`
 - `ExecResult` - Return type of `bash.exec()`
 - `InitialFiles` - File specification format

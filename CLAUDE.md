@@ -63,6 +63,7 @@ node ./dist/cli/just-bash.js -e -c 'false; echo "not reached"' --root .
 ```
 
 Options:
+
 - `--root <path>` - Root directory (default: current directory)
 - `--cwd <path>` - Working directory in sandbox (default: /home/user/project)
 - `--allow-write` - Enable write operations (writes stay in memory)
@@ -171,6 +172,7 @@ RECORD_FIXTURES=force pnpm test:comparison
 ```
 
 When adding comparison tests:
+
 1. Write the test using `setupFiles()` and `compareOutputs()`
 2. Run with `RECORD_FIXTURES=1` to generate fixtures
 3. Commit both the test file and the generated fixture JSON

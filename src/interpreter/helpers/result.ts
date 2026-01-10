@@ -5,18 +5,18 @@
  * constructing ExecResult objects throughout the interpreter.
  */
 
-import type { ExecResult } from "../../types.js";
-import { ExecutionLimitError } from "../errors.js";
+import type { ExecResult } from '../../types.js'
+import { ExecutionLimitError } from '../errors.js'
 
 /**
  * A successful result with no output.
  * Use this for commands that succeed silently.
  */
 export const OK: ExecResult = Object.freeze({
-  stdout: "",
-  stderr: "",
-  exitCode: 0,
-});
+	stdout: '',
+	stderr: '',
+	exitCode: 0,
+})
 
 /**
  * Create a successful result with optional stdout.
@@ -24,8 +24,8 @@ export const OK: ExecResult = Object.freeze({
  * @param stdout - Output to include (default: "")
  * @returns ExecResult with exitCode 0
  */
-export function success(stdout = ""): ExecResult {
-  return { stdout, stderr: "", exitCode: 0 };
+export function success(stdout = ''): ExecResult {
+	return { stdout, stderr: '', exitCode: 0 }
 }
 
 /**
@@ -36,7 +36,7 @@ export function success(stdout = ""): ExecResult {
  * @returns ExecResult with the specified exitCode
  */
 export function failure(stderr: string, exitCode = 1): ExecResult {
-  return { stdout: "", stderr, exitCode };
+	return { stdout: '', stderr, exitCode }
 }
 
 /**
@@ -48,11 +48,11 @@ export function failure(stderr: string, exitCode = 1): ExecResult {
  * @returns ExecResult with all fields
  */
 export function result(
-  stdout: string,
-  stderr: string,
-  exitCode: number,
+	stdout: string,
+	stderr: string,
+	exitCode: number
 ): ExecResult {
-  return { stdout, stderr, exitCode };
+	return { stdout, stderr, exitCode }
 }
 
 /**
@@ -63,7 +63,7 @@ export function result(
  * @returns ExecResult with exitCode 0 if passed, 1 otherwise
  */
 export function testResult(passed: boolean): ExecResult {
-  return { stdout: "", stderr: "", exitCode: passed ? 0 : 1 };
+	return { stdout: '', stderr: '', exitCode: passed ? 0 : 1 }
 }
 
 /**
@@ -76,10 +76,10 @@ export function testResult(passed: boolean): ExecResult {
  * @throws ExecutionLimitError always
  */
 export function throwExecutionLimit(
-  message: string,
-  limitType: "recursion" | "iterations" | "commands",
-  stdout = "",
-  stderr = "",
+	message: string,
+	limitType: 'recursion' | 'iterations' | 'commands',
+	stdout = '',
+	stderr = ''
 ): never {
-  throw new ExecutionLimitError(message, limitType, stdout, stderr);
+	throw new ExecutionLimitError(message, limitType, stdout, stderr)
 }

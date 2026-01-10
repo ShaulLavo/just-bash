@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { Bash } from "../Bash.js";
+import { describe, expect, it } from 'vitest'
+import { Bash } from '../Bash.js'
 
 /**
  * Advanced Agent Scenario: Debugging Workflow
@@ -10,11 +10,11 @@ import { Bash } from "../Bash.js";
  * - Analyzing function call chains
  * - Identifying potential root causes
  */
-describe("Agent Scenario: Debugging Workflow", () => {
-  const createEnv = () =>
-    new Bash({
-      files: {
-        "/app/logs/error.log": `[2024-01-15T10:30:45.123Z] ERROR: Failed to process order
+describe('Agent Scenario: Debugging Workflow', () => {
+	const createEnv = () =>
+		new Bash({
+			files: {
+				'/app/logs/error.log': `[2024-01-15T10:30:45.123Z] ERROR: Failed to process order
   at OrderService.processOrder (/app/src/services/order.ts:45)
   at OrderController.create (/app/src/controllers/order.ts:23)
   at Router.handle (/app/node_modules/express/router.js:178)
@@ -35,7 +35,7 @@ Error: Inventory check failed: Item out of stock
   at InventoryService.reserve (/app/src/services/inventory.ts:89)
   at OrderService.reserveItems (/app/src/services/order.ts:56)
 `,
-        "/app/src/services/order.ts": `import { PaymentService } from './payment';
+				'/app/src/services/order.ts': `import { PaymentService } from './payment';
 import { InventoryService } from './inventory';
 import { NotificationService } from './notification';
 import { logger } from '../utils/logger';
@@ -112,7 +112,7 @@ export class OrderService {
   }
 }
 `,
-        "/app/src/services/payment.ts": `import { PaymentValidator } from '../validators/payment';
+				'/app/src/services/payment.ts': `import { PaymentValidator } from '../validators/payment';
 import { PaymentGateway } from '../gateways/payment';
 import { logger } from '../utils/logger';
 
@@ -152,7 +152,7 @@ export class PaymentService {
   }
 }
 `,
-        "/app/src/services/inventory.ts": `import { ProductRepository } from '../repositories/product';
+				'/app/src/services/inventory.ts': `import { ProductRepository } from '../repositories/product';
 import { logger } from '../utils/logger';
 
 export class InventoryService {
@@ -192,7 +192,7 @@ export class InventoryService {
   }
 }
 `,
-        "/app/src/validators/payment.ts": `import { logger } from '../utils/logger';
+				'/app/src/validators/payment.ts': `import { logger } from '../utils/logger';
 
 export class PaymentValidator {
   validate(payment: PaymentInfo): ValidationResult {
@@ -263,7 +263,7 @@ export class PaymentValidator {
   }
 }
 `,
-        "/app/src/controllers/order.ts": `import { Request, Response } from 'express';
+				'/app/src/controllers/order.ts': `import { Request, Response } from 'express';
 import { OrderService } from '../services/order';
 import { logger } from '../utils/logger';
 
@@ -293,46 +293,45 @@ export class OrderController {
   }
 }
 `,
-        "/app/src/utils/logger.ts": `export const logger = {
+				'/app/src/utils/logger.ts': `export const logger = {
   info: (msg: string) => console.log(\`[INFO] \${msg}\`),
   warn: (msg: string) => console.warn(\`[WARN] \${msg}\`),
   error: (msg: string) => console.error(\`[ERROR] \${msg}\`),
   debug: (msg: string) => console.log(\`[DEBUG] \${msg}\`),
 };
 `,
-      },
-      cwd: "/app",
-    });
+			},
+			cwd: '/app',
+		})
 
-  it("should extract error messages from logs", async () => {
-    const env = createEnv();
-    const result = await env.exec('grep "^Error:" /app/logs/error.log');
-    expect(
-      result.stdout,
-    ).toBe(`Error: Payment validation failed: Invalid card number
+	it('should extract error messages from logs', async () => {
+		const env = createEnv()
+		const result = await env.exec('grep "^Error:" /app/logs/error.log')
+		expect(result.stdout)
+			.toBe(`Error: Payment validation failed: Invalid card number
 Error: Inventory check failed: Item out of stock
-`);
-    expect(result.exitCode).toBe(0);
-  });
+`)
+		expect(result.exitCode).toBe(0)
+	})
 
-  it("should find unique error types", async () => {
-    const env = createEnv();
-    // Field 4 because timestamp has colons: [2024-01-15T10:30:45.123Z] ERROR: message
-    const result = await env.exec(
-      'grep "ERROR:" /app/logs/error.log | cut -d":" -f4 | sort | uniq',
-    );
-    expect(result.stdout).toBe(` Database connection timeout
+	it('should find unique error types', async () => {
+		const env = createEnv()
+		// Field 4 because timestamp has colons: [2024-01-15T10:30:45.123Z] ERROR: message
+		const result = await env.exec(
+			'grep "ERROR:" /app/logs/error.log | cut -d":" -f4 | sort | uniq'
+		)
+		expect(result.stdout).toBe(` Database connection timeout
  Failed to process order
-`);
-    expect(result.exitCode).toBe(0);
-  });
+`)
+		expect(result.exitCode).toBe(0)
+	})
 
-  it("should extract file paths from stack traces", async () => {
-    const env = createEnv();
-    const result = await env.exec(
-      'grep -o "/app/src/[^)]*" /app/logs/error.log | cut -d":" -f1 | sort | uniq',
-    );
-    expect(result.stdout).toBe(`/app/src/controllers/order.ts
+	it('should extract file paths from stack traces', async () => {
+		const env = createEnv()
+		const result = await env.exec(
+			'grep -o "/app/src/[^)]*" /app/logs/error.log | cut -d":" -f1 | sort | uniq'
+		)
+		expect(result.stdout).toBe(`/app/src/controllers/order.ts
 /app/src/db/pool.ts
 /app/src/middleware/auth.ts
 /app/src/repositories/user.ts
@@ -340,152 +339,150 @@ Error: Inventory check failed: Item out of stock
 /app/src/services/order.ts
 /app/src/services/payment.ts
 /app/src/validators/payment.ts
-`);
-    expect(result.exitCode).toBe(0);
-  });
+`)
+		expect(result.exitCode).toBe(0)
+	})
 
-  it("should find the most common error location", async () => {
-    const env = createEnv();
-    const result = await env.exec(
-      'grep -o "at [A-Za-z.]*" /app/logs/error.log | sort | uniq -c | sort -rn | head -3',
-    );
-    expect(result.stdout).toBe(`   2 at OrderService.processOrder
+	it('should find the most common error location', async () => {
+		const env = createEnv()
+		const result = await env.exec(
+			'grep -o "at [A-Za-z.]*" /app/logs/error.log | sort | uniq -c | sort -rn | head -3'
+		)
+		expect(result.stdout).toBe(`   2 at OrderService.processOrder
    2 at OrderController.create
    1 at UserRepository.findById
-`);
-    expect(result.exitCode).toBe(0);
-  });
+`)
+		expect(result.exitCode).toBe(0)
+	})
 
-  it("should find where PaymentValidator.validate is defined", async () => {
-    const env = createEnv();
-    const result = await env.exec(
-      'grep -n "validate(" /app/src/validators/payment.ts | head -1',
-    );
-    expect(result.stdout).toBe(
-      "4:  validate(payment: PaymentInfo): ValidationResult {\n",
-    );
-    expect(result.exitCode).toBe(0);
-  });
+	it('should find where PaymentValidator.validate is defined', async () => {
+		const env = createEnv()
+		const result = await env.exec(
+			'grep -n "validate(" /app/src/validators/payment.ts | head -1'
+		)
+		expect(result.stdout).toBe(
+			'4:  validate(payment: PaymentInfo): ValidationResult {\n'
+		)
+		expect(result.exitCode).toBe(0)
+	})
 
-  it("should trace the payment validation flow", async () => {
-    const env = createEnv();
+	it('should trace the payment validation flow', async () => {
+		const env = createEnv()
 
-    // Find where validator is called
-    const validatorUsage = await env.exec(
-      'grep -n "validator.validate" /app/src/services/payment.ts',
-    );
-    expect(validatorUsage.stdout).toBe(
-      "18:    const validationResult = this.validator.validate(payment);\n",
-    );
+		// Find where validator is called
+		const validatorUsage = await env.exec(
+			'grep -n "validator.validate" /app/src/services/payment.ts'
+		)
+		expect(validatorUsage.stdout).toBe(
+			'18:    const validationResult = this.validator.validate(payment);\n'
+		)
 
-    // Find where PaymentService.charge is called
-    const chargeUsage = await env.exec(
-      'grep -n "paymentService.charge" /app/src/services/order.ts',
-    );
-    expect(chargeUsage.stdout).toBe(
-      "64:      return await this.paymentService.charge(order.payment, order.total);\n",
-    );
-    expect(chargeUsage.exitCode).toBe(0);
-  });
+		// Find where PaymentService.charge is called
+		const chargeUsage = await env.exec(
+			'grep -n "paymentService.charge" /app/src/services/order.ts'
+		)
+		expect(chargeUsage.stdout).toBe(
+			'64:      return await this.paymentService.charge(order.payment, order.total);\n'
+		)
+		expect(chargeUsage.exitCode).toBe(0)
+	})
 
-  it("should find all throw statements in order service", async () => {
-    const env = createEnv();
-    const result = await env.exec('grep -n "throw" /app/src/services/order.ts');
-    expect(result.stdout).toBe(`40:      throw error;
+	it('should find all throw statements in order service', async () => {
+		const env = createEnv()
+		const result = await env.exec('grep -n "throw" /app/src/services/order.ts')
+		expect(result.stdout).toBe(`40:      throw error;
 48:      throw new Error('Order must have at least one item');
 56:        throw new Error(\`Inventory check failed: Item out of stock\`);
 67:      throw error;
-`);
-    expect(result.exitCode).toBe(0);
-  });
+`)
+		expect(result.exitCode).toBe(0)
+	})
 
-  it("should find all error logging statements", async () => {
-    const env = createEnv();
-    const result = await env.exec(
-      'grep -rn "logger.error" /app/src --include="*.ts"',
-    );
-    expect(
-      result.stdout,
-    ).toBe(`/app/src/controllers/order.ts:20:      logger.error(\`Order creation failed: \${error.message}\`);
+	it('should find all error logging statements', async () => {
+		const env = createEnv()
+		const result = await env.exec(
+			'grep -rn "logger.error" /app/src --include="*.ts"'
+		)
+		expect(result.stdout)
+			.toBe(`/app/src/controllers/order.ts:20:      logger.error(\`Order creation failed: \${error.message}\`);
 /app/src/services/order.ts:39:      logger.error(\`Failed to process order: \${error.message}\`);
 /app/src/services/order.ts:66:      logger.error(\`Payment failed for order \${order.id}\`);
 /app/src/services/payment.ts:35:      logger.error(\`Gateway error: \${error.message}\`);
-`);
-    expect(result.exitCode).toBe(0);
-  });
+`)
+		expect(result.exitCode).toBe(0)
+	})
 
-  it("should find try-catch blocks in services", async () => {
-    const env = createEnv();
-    const result = await env.exec('grep -c "try {" /app/src/services/*.ts');
-    expect(result.stdout).toBe(`/app/src/services/inventory.ts:0
+	it('should find try-catch blocks in services', async () => {
+		const env = createEnv()
+		const result = await env.exec('grep -c "try {" /app/src/services/*.ts')
+		expect(result.stdout).toBe(`/app/src/services/inventory.ts:0
 /app/src/services/order.ts:2
 /app/src/services/payment.ts:1
-`);
-    expect(result.exitCode).toBe(0);
-  });
+`)
+		expect(result.exitCode).toBe(0)
+	})
 
-  it("should analyze the order processing flow", async () => {
-    const env = createEnv();
+	it('should analyze the order processing flow', async () => {
+		const env = createEnv()
 
-    // Find all method calls in processOrder
-    const result = await env.exec(
-      'grep -A 30 "async processOrder" /app/src/services/order.ts | grep -E "this\\.|await "',
-    );
-    expect(result.stdout).toBe(`      this.validateOrder(order);
+		// Find all method calls in processOrder
+		const result = await env.exec(
+			'grep -A 30 "async processOrder" /app/src/services/order.ts | grep -E "this\\.|await "'
+		)
+		expect(result.stdout).toBe(`      this.validateOrder(order);
       await this.reserveItems(order.items);
       const paymentResult = await this.processPayment(order);
       const confirmedOrder = await this.confirmOrder(order, paymentResult);
       await this.notificationService.sendConfirmation(order);
-`);
-    expect(result.exitCode).toBe(0);
-  });
+`)
+		expect(result.exitCode).toBe(0)
+	})
 
-  it("should find all service dependencies in order service", async () => {
-    const env = createEnv();
-    const result = await env.exec('grep "^import" /app/src/services/order.ts');
-    expect(result.stdout).toBe(`import { PaymentService } from './payment';
+	it('should find all service dependencies in order service', async () => {
+		const env = createEnv()
+		const result = await env.exec('grep "^import" /app/src/services/order.ts')
+		expect(result.stdout).toBe(`import { PaymentService } from './payment';
 import { InventoryService } from './inventory';
 import { NotificationService } from './notification';
 import { logger } from '../utils/logger';
-`);
-    expect(result.exitCode).toBe(0);
-  });
+`)
+		expect(result.exitCode).toBe(0)
+	})
 
-  it("should find validation error messages", async () => {
-    const env = createEnv();
-    const result = await env.exec(
-      'grep "error:" /app/src/validators/payment.ts',
-    );
-    expect(
-      result.stdout,
-    ).toBe(`      return { valid: false, error: 'Invalid card number' };
+	it('should find validation error messages', async () => {
+		const env = createEnv()
+		const result = await env.exec(
+			'grep "error:" /app/src/validators/payment.ts'
+		)
+		expect(result.stdout)
+			.toBe(`      return { valid: false, error: 'Invalid card number' };
       return { valid: false, error: 'Invalid expiry date' };
       return { valid: false, error: 'Invalid CVV' };
-`);
-    expect(result.exitCode).toBe(0);
-  });
+`)
+		expect(result.exitCode).toBe(0)
+	})
 
-  it("should count total lines in files from stack trace", async () => {
-    const env = createEnv();
-    const result = await env.exec(
-      "wc -l /app/src/services/order.ts /app/src/services/payment.ts /app/src/validators/payment.ts",
-    );
-    expect(result.stdout).toBe(`76 /app/src/services/order.ts
+	it('should count total lines in files from stack trace', async () => {
+		const env = createEnv()
+		const result = await env.exec(
+			'wc -l /app/src/services/order.ts /app/src/services/payment.ts /app/src/validators/payment.ts'
+		)
+		expect(result.stdout).toBe(`76 /app/src/services/order.ts
 39 /app/src/services/payment.ts
 70 /app/src/validators/payment.ts
 185 total
-`);
-    expect(result.exitCode).toBe(0);
-  });
+`)
+		expect(result.exitCode).toBe(0)
+	})
 
-  it("should find all files that import the order service", async () => {
-    const env = createEnv();
-    const result = await env.exec(
-      'grep -rl "OrderService" /app/src --include="*.ts"',
-    );
-    expect(result.stdout).toBe(`/app/src/controllers/order.ts
+	it('should find all files that import the order service', async () => {
+		const env = createEnv()
+		const result = await env.exec(
+			'grep -rl "OrderService" /app/src --include="*.ts"'
+		)
+		expect(result.stdout).toBe(`/app/src/controllers/order.ts
 /app/src/services/order.ts
-`);
-    expect(result.exitCode).toBe(0);
-  });
-});
+`)
+		expect(result.exitCode).toBe(0)
+	})
+})

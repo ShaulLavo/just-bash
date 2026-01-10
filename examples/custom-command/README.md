@@ -37,6 +37,7 @@ summarize --length short https://example.com > summary.md
 ```
 
 This demonstrates how custom commands can:
+
 - Make network requests (via summarize-core's content extraction)
 - Use AI APIs (Vercel AI Gateway with Claude)
 - Output to files via shell redirection
@@ -46,26 +47,26 @@ This demonstrates how custom commands can:
 Use `defineCommand` from just-bash:
 
 ```typescript
-import { defineCommand } from "just-bash";
+import { defineCommand } from 'just-bash'
 
-const myCommand = defineCommand("mycommand", async (args, ctx) => {
-  // args: command arguments (string[])
-  // ctx: CommandContext with fs, cwd, env, stdin, exec
-  
-  return {
-    stdout: "output here\n",
-    stderr: "",
-    exitCode: 0,
-  };
-});
+const myCommand = defineCommand('mycommand', async (args, ctx) => {
+	// args: command arguments (string[])
+	// ctx: CommandContext with fs, cwd, env, stdin, exec
+
+	return {
+		stdout: 'output here\n',
+		stderr: '',
+		exitCode: 0,
+	}
+})
 ```
 
 Then register it:
 
 ```typescript
 const bash = new Bash({
-  customCommands: [myCommand],
-});
+	customCommands: [myCommand],
+})
 ```
 
 ## CommandContext
@@ -77,4 +78,3 @@ Your command receives a context object with:
 - `env` - Environment variables
 - `stdin` - Standard input (from pipes)
 - `exec` - Function to run subcommands
-
