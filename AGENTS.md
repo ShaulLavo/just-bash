@@ -1,5 +1,10 @@
 # Agent instructions
 
+## Developing
+
+- Use `bun` for all tasks (ignore `pnpm` if mentioned below).
+- If `bun` is bugged, try `~/.bun/bin/bun`.
+
 - use `pnpm dev:exec` for evaluating scripts using BashEnv during development. See Debugging info below.
 - Install packages via pnpm rather than editing package.json directly
 - Bias towards making new test files that are roughly logically grouped rather than letting test files gets too large. Try to stay below 300 lines. Prefer making a new file when you want to add a `describe()`
@@ -42,5 +47,6 @@
 ## 🦾 Coding Standards
 
 ### 🗣️ Comments & Complexity
-- **Minimalism**: Avoid adding comments unless they are important (explain *why*, not *what*).
+
+- **Minimalism**: Avoid adding comments unless they are important (explain _why_, not _what_).
 - **Code Clarity**: If code is complex, reduce nesting and move statements/calculations into variables or functions with descriptive names over commenting.
