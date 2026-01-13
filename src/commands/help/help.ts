@@ -89,7 +89,7 @@ function formatHelp(commands: Command[]): string {
   // Display categories in defined order
   for (const cat of CATEGORY_ORDER) {
     if (categorized.has(cat)) {
-      const cmds = categorized.get(cat)?.sort();
+      const cmds = categorized.get(cat)!.sort();
       lines.push(`  ${cat}:`);
       lines.push(`    ${cmds.join(", ")}\n`);
       categorized.delete(cat);
@@ -102,7 +102,7 @@ function formatHelp(commands: Command[]): string {
     // "Other" is already handled in CATEGORY_ORDER, but if it wasn't empty and not in order, display it
     // Actually, "Other" is in CATEGORY_ORDER so it should be handled above.
     // This loop handles custom categories not in the standard list.
-    const cmds = categorized.get(cat)?.sort();
+    const cmds = categorized.get(cat)!.sort();
     lines.push(`  ${cat}:`);
     lines.push(`    ${cmds.join(", ")}\n`);
   }
